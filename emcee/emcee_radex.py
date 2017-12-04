@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# To run it on the cluster, log into cluster-head.ias.u-psud.fr
-# and use
+# To run it on the cluster, login and use
 #
 # > srun -N 1 -c 16 --exclusive emcee_radex.py
 #
