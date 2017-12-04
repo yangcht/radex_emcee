@@ -18,3 +18,7 @@
 Data are published in C. Yang, A. Omont, A. Beelen et al. 2017, A&A in press. 
 
 Cite here: http://adsabs.harvard.edu/abs/2017arXiv170904740Y
+
+### Authors of the code
+
+Alexandre Beelen (ORCID: 0000-0003-3201-0185); Chentao Yang (ORCID: 0000-0002-8117-9991).
