@@ -4,6 +4,12 @@
 
 This code combines `emcee` and `RADEX`, performing MCMC sampling on the RADEX-parameters space WITHOUT predefined grids, which leads to faster a convergence time and a better sampling of the parameter space.
 
+
+### Dependence:
+
+- PyRadex: https://github.com/keflavich/pyradex
+- emcee: https://github.com/dfm/emcee
+
 ### Directory structure:
 
 - `README.md`: this file;
@@ -22,7 +28,7 @@ This code combines `emcee` and `RADEX`, performing MCMC sampling on the RADEX-pa
 ### Citation
 Data are published in C. Yang, A. Omont, A. Beelen et al. 2017, A&A in press. 
 
-Cite here: http://adsabs.harvard.edu/abs/2017arXiv170904740Y
+Please cite our paper here: http://adsabs.harvard.edu/abs/2017arXiv170904740Y
 
 ### Authors of the code
 
