@@ -2,8 +2,8 @@
  
 ### Note: 
 
-This code combines `emcee` and `RADEX`, performing MCMC sampling on the RADEX-parameters space WITHOUT predefined grids, which leads to faster a convergence time and a better sampling of the parameter space.
-
+- This code combines `emcee` and `RADEX`, performing MCMC sampling on the RADEX-parameters space WITHOUT predefined grids, which leads to faster a convergence time and a better sampling of the parameter space.
+- Simply use `replot` function to generate the figures.
 
 ### Dependence:
 
