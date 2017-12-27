@@ -26,9 +26,9 @@
 	- `flux_for2p.dat`: flux data used in `emcee_radex_2comp.py`;
 
 ### Citation
-Data are published in C. Yang, A. Omont, A. Beelen et al. 2017, A&A in press. 
+Data are published in C. Yang, A. Omont, A. Beelen et al. 2017, A&A, 608, A144.
 
-Please cite our paper here: http://adsabs.harvard.edu/abs/2017arXiv170904740Y
+Please cite our paper here: http://adsabs.harvard.edu/abs/2017A%26A...608A.144Y
 
 ### Authors of the code
 
