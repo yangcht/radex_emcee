@@ -28,7 +28,7 @@
 ### Citation
 Data are published in C. Yang, A. Omont, A. Beelen et al. 2017, A&A, 608, A144.
 
-Please cite our paper here: http://adsabs.harvard.edu/abs/2017A%26A...608A.144Y
+***Please cite our paper (http://adsabs.harvard.edu/abs/2017A%26A...608A.144Y) if you find this code useful.***
 
 ### Authors of the code
 
