@@ -22,7 +22,7 @@ import os
 import sys
 sys.path.insert(1, '/home/cyang/.local/lib/python2.7/site-packages')
 import logging
-import cPickle as pickle
+import cPickle as pickle # use 'import _pickle as pickle' in Python3
 import warnings
 import numpy as np
 from astropy.io import ascii
@@ -266,11 +266,11 @@ def replot(source):
     n_c, T_c, N_c, P_c= map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
                         zip(*np.percentile(flatchain_pressure, [16, 50, 84], axis=0)))
     
-    print "median"
-    print ' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0]
-    print '+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1]
-    print '-', n_c[2],'-', T_c[2],'-', N_c[2],'-', P_c[2]
-    print "4max", '\n', pemcee_max
+    print ("median")
+    print (' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0])
+    print ('+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1])
+    print ('-', n_c[2],'-', T_c[2],'-', N_c[2],'-', P_c[2])
+    print ("4max", '\n', pemcee_max)
 
 
 def main():
@@ -429,19 +429,19 @@ def main():
                       zip(*np.percentile(chain_plot, [16, 50, 84], axis=0)))
         
         # Output the best fit
-        print "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        print "xxx:", source, '\n' "xxx: minimised results"
-        print "xxx:", new_pmin
+        print ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+        print ("xxx:", source, '\n' "xxx: minimised results")
+        print ("xxx:", new_pmin)
         # Print the MCMC results for +/- 1 sigma range of the paremeters
-        print "xxx: emcee results"
-        print "xxx:", "n_H2"
-        print "xxx:", n_h2
-        print "xxx:", "T_kin"    
-        print "xxx:", T_kin
-        print "xxx:", "N_CO/dv"     
-        print "xxx:", N_co
-        print "xxx:", "P"        
-        print "xxx:", Pres
+        print ("xxx: emcee results")
+        print ("xxx:", "n_H2")
+        print ("xxx:", n_h2)
+        print ("xxx:", "T_kin")    
+        print ("xxx:", T_kin)
+        print ("xxx:", "N_CO/dv")     
+        print ("xxx:", N_co)
+        print ("xxx:", "P")      
+        print ("xxx:", Pres)
 
 if __name__ == '__main__':
 
