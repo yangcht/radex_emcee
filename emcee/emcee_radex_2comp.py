@@ -22,7 +22,7 @@ import os
 import sys
 sys.path.insert(1, '/home/cyang/.local/lib/python2.7/site-packages')
 import logging
-import cPickle as pickle
+import cPickle as pickle # use 'import _pickle as pickle' in Python3
 import warnings
 import numpy as np
 from astropy.io import ascii
@@ -374,18 +374,18 @@ def replot(source):
     n_w, T_w, N_w, P_w = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
                          zip(*np.percentile(chain_plot_warm, [16, 50, 84], axis=0)))
     
-    print "#### cold component - median ####"
-    print ' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0]
-    print '+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1]
-    print '-', n_c[2],'-', T_c[2],'-', N_c[2],'-', P_c[2]
-    print "4max", '\n', pemcee_max_c
-    print "================================="
-    print "#### warm component - median ####"
-    print ' ', n_w[0],' ', T_w[0],' ', N_w[0],' ', P_w[0]
-    print '+', n_w[1],'+', T_w[1],'+', N_w[1],'+', P_w[1]
-    print '-', n_w[2],'-', T_w[2],'-', N_w[2],'-', P_w[2]
-    print "4max", '\n', pemcee_max_w
-    print "================================="
+    print ("#### cold component - median ####")
+    print (' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0])
+    print ('+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1])
+    print ('-', n_c[2],'-', T_c[2],'-', N_c[2],'-', P_c[2])
+    print ("4max", '\n', pemcee_max_c)
+    print ("=================================")
+    print ("#### warm component - median ####")
+    print (' ', n_w[0],' ', T_w[0],' ', N_w[0],' ', P_w[0])
+    print ('+', n_w[1],'+', T_w[1],'+', N_w[1],'+', P_w[1])
+    print ('-', n_w[2],'-', T_w[2],'-', N_w[2],'-', P_w[2])
+    print ("4max", '\n', pemcee_max_w)
+    print ("================================="
 
 
 def main():
@@ -576,19 +576,19 @@ def main():
                                 zip(*np.percentile(chain_warm, [16, 50, 84], axis=0)))
 
         # Output the best fit
-        print "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        print "xxx:", source, '\n', "xxx: minimised results"
-        print "xxx:", new_pmin_c, '\n', new_pmin_w
+        print ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+        print ("xxx:", source, '\n', "xxx: minimised results")
+        print ("xxx:", new_pmin_c, '\n', new_pmin_w)
         # Print the MCMC results for +/- 1 sigma range of the paremeters
-        print "xxx: emcee results"
-        print "xxx:", "n_H2"
-        print "xxx:", n_c, '\n', "xxx:",n_w
-        print "xxx:", "T_kin"
-        print "xxx:", T_c, '\n', "xxx:",T_w
-        print "xxx:", "N_CO/dv"
-        print "xxx:", N_c, '\n', "xxx:",N_w
-        print "xxx:", "P"
-        print "xxx:", P_c, '\n', "xxx:",P_w
+        print ("xxx: emcee results")
+        print ("xxx:", "n_H2")
+        print ("xxx:", n_c, '\n', "xxx:",n_w)
+        print ("xxx:", "T_kin")
+        print ("xxx:", T_c, '\n', "xxx:",T_w)
+        print ("xxx:", "N_CO/dv")
+        print ("xxx:", N_c, '\n', "xxx:",N_w)
+        print ("xxx:", "P")
+        print ("xxx:", P_c, '\n', "xxx:",P_w)
 
 if __name__ == '__main__':
 
