@@ -2,6 +2,7 @@
  
 ### Note: 
 
+- Note that the code was using Python 2, some modifications are needed if running under Python3.
 - This code combines `emcee` and `RADEX`, performing MCMC sampling on the RADEX-parameters space WITHOUT predefined grids, which leads to faster a convergence time and a better sampling of the parameter space.
 - Simply use `replot` function to generate the figures.
 
@@ -9,6 +10,7 @@
 
 - PyRadex: https://github.com/keflavich/pyradex
 - emcee: https://github.com/dfm/emcee
+- corner: https://github.com/dfm/corner.py
 
 ### Directory structure:
 
