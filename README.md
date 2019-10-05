@@ -2,7 +2,7 @@
  
 ### Note: 
 
-- Note that the code was using Python 2, some modifications are needed if running under Python3, for examples:
+- Note that the code was using Python 2, some modifications are needed if running under Python3, for example, in `emcee_radex.py`:
 	- line 25, use `import _pickle as pickle` in Python3
 	- line 200, use `with open("./single/{}_bounds.pickle".format(source), 'rb') as pkl_file:`
 	- line 416, use `with open("./single/{}_bounds.pickle".format(source), 'wb') as pkl_file:`
