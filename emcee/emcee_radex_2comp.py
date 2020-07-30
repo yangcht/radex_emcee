@@ -14,15 +14,13 @@
 #SBATCH --account=cyang
 #SBATCH --exclusive
 #SBATCH --mail-type=END
-#SBATCH --mail-user=chentao.yang@ias.u-psud.fr
 
 # autopep8 --ignore E26 emcee_radex_2comp.py
 import os
 # For runing the code on the clusters
 import sys
-sys.path.insert(1, '/home/cyang/.local/lib/python2.7/site-packages')
 import logging
-import cPickle as pickle # use 'import _pickle as pickle' in Python3
+import _pickle as cPickle  
 import warnings
 import numpy as np
 from astropy.io import ascii
@@ -84,8 +82,8 @@ def model_lvg(Jup, p, R=None):
                     reuse_last=True, reload_molfile=False)
         result_2 = R.source_line_surfbrightness # Do not use get_table()
 
-    intensity = (result_1[np.asarray(Jup) - 1] * (10.**log_size_1 * u.sr) * (1. * kms)).to(Jykms) + \
-                (result_2[np.asarray(Jup) - 1] * (10.**log_size_2 * u.sr) * (1. * kms)).to(Jykms)
+    intensity = (result_1[np.asarray(np.int_(Jup)) - 1] * (10.**log_size_1 * u.sr) * (1. * kms)).to(Jykms) + \
+                (result_2[np.asarray(np.int_(Jup)) - 1] * (10.**log_size_2 * u.sr) * (1. * kms)).to(Jykms)
     return intensity.value
 
 
@@ -99,7 +97,7 @@ def model_single_lvg(Jup, p, R=None):
         R.run_radex(validate_colliders=False,
                     reuse_last=True, reload_molfile=False)
         result = R.source_line_surfbrightness # Do not use get_table()
-    intensity = (result[np.asarray(Jup) - 1] *
+    intensity = (result[np.asarray(np.int_(Jup)) - 1] *
                  (10.**log_size * u.sr) * (1. * kms)).to(Jykms)
     return intensity.value
 
@@ -198,7 +196,13 @@ def lnprob(p, Jup, flux, eflux, bounds=None, T_d=None):
 
 def read_data(filename):
     """Read data into a comprehensible panda frame"""
-
+    
+    ######################################################
+    #  Disadvantage here: only includes J_up = 11 here,  #
+    #  please manually add more if you have              #
+    #  J_up >= 12 CO lines                               #
+    ######################################################
+    
     ascii_data = ascii.read(
         filename, names=[
             "SOURCE", "z", "D_L", "T_d", "line_width",
@@ -258,7 +262,7 @@ def replot(source):
 
     plt.ion()
     # Retrieve the data
-    with open("./double/{}_bounds_2comp.pickle".format(source), 'r') as pkl_file:
+    with open("./double/{}_bounds_2comp.pickle".format(source), 'rb') as pkl_file:
         (source, z, bounds, T_d, 
             (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)) =  pickle.load(pkl_file)
 
@@ -370,22 +374,22 @@ def replot(source):
     chain_plot_cold = np.hstack((chain_cold[:,[0,1,2]], chain_cold[:,[0]]+chain_cold[:,[1]]))
     chain_plot_warm = np.hstack((chain_warm[:,[0,1,2]], chain_warm[:,[0]]+chain_warm[:,[1]]))
     n_c, T_c, N_c, P_c = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
-                         zip(*np.percentile(chain_plot_cold, [16, 50, 84], axis=0)))
+                         list(zip(*np.percentile(chain_plot_cold, [16, 50, 84], axis=0))))
     n_w, T_w, N_w, P_w = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
-                         zip(*np.percentile(chain_plot_warm, [16, 50, 84], axis=0)))
+                         list(zip(*np.percentile(chain_plot_warm, [16, 50, 84], axis=0))))
     
-    print ("#### cold component - median ####")
-    print (' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0])
-    print ('+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1])
-    print ('-', n_c[2],'-', T_c[2],'-', N_c[2],'-', P_c[2])
-    print ("4max", '\n', pemcee_max_c)
-    print ("=================================")
-    print ("#### warm component - median ####")
-    print (' ', n_w[0],' ', T_w[0],' ', N_w[0],' ', P_w[0])
-    print ('+', n_w[1],'+', T_w[1],'+', N_w[1],'+', P_w[1])
-    print ('-', n_w[2],'-', T_w[2],'-', N_w[2],'-', P_w[2])
-    print ("4max", '\n', pemcee_max_w)
-    print ("================================="
+    print("#### cold component - median ####")
+    print(' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0])
+    print('+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1])
+    print('-', n_c[2],'-', T_c[2],'-', N_c[2],'-', P_c[2])
+    print("4max", '\n', pemcee_max_c)
+    print("=================================")
+    print("#### warm component - median ####")
+    print(' ', n_w[0],' ', T_w[0],' ', N_w[0],' ', P_w[0])
+    print('+', n_w[1],'+', T_w[1],'+', N_w[1],'+', P_w[1])
+    print('-', n_w[2],'-', T_w[2],'-', N_w[2],'-', P_w[2])
+    print("4max", '\n', pemcee_max_w)
+    print("================================="
 
 
 def main():
@@ -512,7 +516,7 @@ def main():
         try:
             popt, pcov = curve_fit(opt_fun, Jup, flux.value,
                                    sigma=eflux.value, p0=p0,
-                                   bounds=zip(*bounds))
+                                  bounds=list(zip(*bounds)))
             logger.info("    curve_fit : {}".format(popt))
         except RuntimeError:
             logger.warn("    curve_fit : failed")
@@ -532,7 +536,12 @@ def main():
 
         # Do the heavy computation
         ndim = len(popt)
-        nwalkers = 400  # now 400, the larger the better
+      
+        #################### Define the number of walkers here
+        nwalkers = 400       # 400 walkers
+        n_iter_burn = 100    # burning phase, number of iterations = 100
+        n_iter_walk = 1000   # walking phase, number of iterations = 1000
+      
         # Random starting positions
         pos = [popt + 1e-3 * np.random.randn(ndim) for i in range(nwalkers)]
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
@@ -542,16 +551,16 @@ def main():
         # Burning time
         logger.info("    burning samples")
         pos, prob, state = sampler.run_mcmc(
-            pos, 100, storechain=False)  # now 100, will be 1000
+            pos, n_iter_burn, storechain=False)  # now 100, will be 1000
         sampler.reset()
         # Sampling time
         logger.info("    walking")
-        result = sampler.run_mcmc(pos, 1000)  # now 1000, will be 5000
+        result = sampler.run_mcmc(pos, n_iter_walk)  # now 1000, will be 5000
         pemcee = np.percentile(sampler.flatchain, [50], axis=0)[0]
 
         chain, lnprobability = sampler.chain, sampler.lnprobability
 
-        with open("./double/{}_bounds_2comp.pickle".format(source), 'w') as pkl_file:
+        with open("./double/{}_bounds_2comp.pickle".format(source), 'wb') as pkl_file:
             pickle.dump((source, z, bounds, T_d,
                          (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)),
                         pkl_file)
@@ -571,24 +580,24 @@ def main():
         new_pmin_w = np.hstack((pmin_w[:3],pmin_w[0]+pmin_w[1]))
 
         n_c, T_c, N_c, P_c = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
-                                zip(*np.percentile(chain_cold, [16, 50, 84], axis=0)))
+                                list(zip(*np.percentile(chain_cold, [16, 50, 84], axis=0))))
         n_w, T_w, N_w, P_w = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
-                                zip(*np.percentile(chain_warm, [16, 50, 84], axis=0)))
+                                list(zip(*np.percentile(chain_warm, [16, 50, 84], axis=0))))
 
         # Output the best fit
-        print ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-        print ("xxx:", source, '\n', "xxx: minimised results")
-        print ("xxx:", new_pmin_c, '\n', new_pmin_w)
+        print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+        print("xxx:", source, '\n', "xxx: minimised results")
+        print("xxx:", new_pmin_c, '\n', new_pmin_w)
         # Print the MCMC results for +/- 1 sigma range of the paremeters
-        print ("xxx: emcee results")
-        print ("xxx:", "n_H2")
-        print ("xxx:", n_c, '\n', "xxx:",n_w)
-        print ("xxx:", "T_kin")
-        print ("xxx:", T_c, '\n', "xxx:",T_w)
-        print ("xxx:", "N_CO/dv")
-        print ("xxx:", N_c, '\n', "xxx:",N_w)
-        print ("xxx:", "P")
-        print ("xxx:", P_c, '\n', "xxx:",P_w)
+        print("xxx: emcee results")
+        print("xxx:", "n_H2")
+        print("xxx:", n_c, '\n', "xxx:",n_w)
+        print("xxx:", "T_kin")
+        print("xxx:", T_c, '\n', "xxx:",T_w)
+        print("xxx:", "N_CO/dv")
+        print("xxx:", N_c, '\n', "xxx:",N_w)
+        print("xxx:", "P")
+        print("xxx:", P_c, '\n', "xxx:",P_w)
 
 if __name__ == '__main__':
 

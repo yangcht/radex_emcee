@@ -14,15 +14,14 @@
 #SBATCH --account=cyang
 #SBATCH --exclusive
 #SBATCH --mail-type=END
-#SBATCH --mail-user=chentao.yang@ias.u-psud.fr
+#SBATCH --mail-user=xxx
 
 # autopep8 --ignore E26 emcee_radex.py
 import os
 # For runing the code on the clusters
 import sys
-sys.path.insert(1, '/home/cyang/.local/lib/python2.7/site-packages')
 import logging
-import cPickle as pickle # use 'import _pickle as pickle' in Python3
+import _pickle as pickle  
 import warnings
 import numpy as np
 from astropy.io import ascii
@@ -73,7 +72,7 @@ def model_lvg(Jup, p, R=None):
         R.run_radex(validate_colliders=False,
                     reuse_last=True, reload_molfile=False)
         result = R.source_line_surfbrightness # Do not use get_table()
-    intensity = (result[np.asarray(Jup) - 1] *
+    intensity = (result[np.asarray(np.int_(Jup)) - 1] *
                  (10.**log_size * u.sr) * (1. * kms)).to(Jykms)
     return intensity.value
 
@@ -138,7 +137,13 @@ def lnprob(p, Jup, flux, eflux, bounds=None):
 
 def read_data(filename):
     """Read data into a comprehensible panda frame"""
-
+    
+    ######################################################
+    #  Disadvantage here: only includes J_up = 11 here,  #
+    #  please manually add more if you have              #
+    #  J_up >= 12 CO lines                               #
+    ######################################################
+    
     ascii_data = ascii.read(
         filename, names=[
             "SOURCE", "z", "D_L", "line_width",
@@ -197,7 +202,7 @@ def replot(source):
 
     plt.ion()
     # Retrieve the data
-    with open("./single/{}_bounds.pickle".format(source), 'r') as pkl_file:
+    with open("./single/{}_bounds.pickle".format(source), 'rb') as pkl_file:
         (source, z, bounds, (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)) =  pickle.load(pkl_file)
 
     R.set_params(tbg=2.7315 * (1 + z))
@@ -264,13 +269,13 @@ def replot(source):
     # Print the MCMC results
     flatchain_pressure = np.hstack((flatchain[:,[0,1,2]], flatchain[:,[0]]+flatchain[:,[1]]))
     n_c, T_c, N_c, P_c= map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
-                        zip(*np.percentile(flatchain_pressure, [16, 50, 84], axis=0)))
+                        list(zip(*np.percentile(flatchain_pressure, [16, 50, 84], axis=0))))
     
-    print ("median")
-    print (' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0])
-    print ('+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1])
-    print ('-', n_c[2],'-', T_c[2],'-', N_c[2],'-', P_c[2])
-    print ("4max", '\n', pemcee_max)
+    print("median")
+    print(' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0])
+    print('+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1])
+    print('-', n_c[2],'-', T_c[2],'-', N_c[2],'-', P_c[2])
+    print("4max", '\n', pemcee_max)
 
 
 def main():
@@ -291,7 +296,7 @@ def main():
 
         # TODO: would it help to use the CI data ?
         # If 2 lines probably yes, otherwise, must be degenerate with
-        # the abondance
+        # the abundance
 
         # Retrieve data
         z, line_width, Jup, flux, eflux = get_source(source, data)
@@ -370,11 +375,11 @@ def main():
         opt_fun = lambda p, log_density, log_temperature, log_column, log_size: \
             model_lvg(p, [log_density, log_temperature, log_column, 
                           log_size], R=R)
-
+         
         try:
             popt, pcov = curve_fit(opt_fun, Jup, flux.value,
                                    sigma=eflux.value, p0=p0,
-                                   bounds=zip(*bounds))
+                                   bounds=list(zip(*bounds)))
             logger.info("    curve_fit : {}".format(popt))
         except RuntimeError:
             logger.warn("    curve_fit : failed")
@@ -394,7 +399,12 @@ def main():
 
         # Do the heavy computation
         ndim = len(popt)
-        nwalkers = 400  # 400 walkers
+        
+        #################### Define the number of walkers here
+        nwalkers = 400       # 400 walkers
+        n_iter_burn = 100    # burning phase, number of iterations = 100
+        n_iter_walk = 1000   # walking phase, number of iterations = 1000
+        
         # Random starting positions
         pos = [popt + 1e-3 * np.random.randn(ndim) for i in range(nwalkers)]
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
@@ -404,16 +414,16 @@ def main():
         # Burning time
         logger.info("    burning samples")
         pos, prob, state = sampler.run_mcmc(
-            pos, 100, storechain=False)  # now 100, will be 1000
+            pos, n_iter_burn)     
         sampler.reset()
         # Sampling time
         logger.info("    walking")
-        result = sampler.run_mcmc(pos, 1000)  # now 1000, will be 5000
+        result = sampler.run_mcmc(pos, n_iter_walk)  
         pemcee = np.percentile(sampler.flatchain, [50], axis=0)[0]
 
         chain, lnprobability = sampler.chain, sampler.lnprobability
 
-        with open("./single/{}_bounds.pickle".format(source), 'w') as pkl_file:
+        with open("./single/{}_bounds.pickle".format(source), 'wb') as pkl_file:
             pickle.dump((source, z, bounds,
                          (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)),
                         pkl_file)
@@ -426,22 +436,22 @@ def main():
         new_pmin = np.hstack((pmin[:3],pmin[0]+pmin[1]))  
         
         n_h2, T_kin, N_co, Pres = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
-                      zip(*np.percentile(chain_plot, [16, 50, 84], axis=0)))
+                      list(zip(*np.percentile(chain_plot, [16, 50, 84], axis=0))))
         
         # Output the best fit
-        print ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-        print ("xxx:", source, '\n' "xxx: minimised results")
-        print ("xxx:", new_pmin)
+        print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+        print("xxx:", source, '\n' "xxx: minimised results")
+        print("xxx:", new_pmin)
         # Print the MCMC results for +/- 1 sigma range of the paremeters
-        print ("xxx: emcee results")
-        print ("xxx:", "n_H2")
-        print ("xxx:", n_h2)
-        print ("xxx:", "T_kin")    
-        print ("xxx:", T_kin)
-        print ("xxx:", "N_CO/dv")     
-        print ("xxx:", N_co)
-        print ("xxx:", "P")      
-        print ("xxx:", Pres)
+        print("xxx: emcee results")
+        print("xxx:", "n_H2")
+        print("xxx:", n_h2)
+        print("xxx:", "T_kin")    
+        print("xxx:", T_kin)
+        print("xxx:", "N_CO/dv")     
+        print("xxx:", N_co)
+        print("xxx:", "P")      
+        print("xxx:", Pres)
 
 if __name__ == '__main__':
 
