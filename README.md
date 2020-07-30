@@ -10,10 +10,9 @@
 ## Installation & usage: 
 
 ### Comments:
-- Not the code is updated to work with Python 3.7.
-	- Note that Python 3.8 *may* have issues with the `pyradex` package, you *may* encounter a decimal issue (more [here](https://github.com/keflavich/pyradex/issues/31)).  
+- Note the code is updated to work with Python 3.7.
+	- Python 3.8 *may* have issues with the `pyradex` package, you *may* encounter a decimal issue (more [here](https://github.com/keflavich/pyradex/issues/31)).  
 	
-- Simply use `replot` function to generate the figures.
 
 ### Dependence:
 
