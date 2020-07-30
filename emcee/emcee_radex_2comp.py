@@ -20,7 +20,7 @@ import os
 # For runing the code on the clusters
 import sys
 import logging
-import _pickle as cPickle  
+import _pickle as pickle  
 import warnings
 import numpy as np
 from astropy.io import ascii
@@ -389,7 +389,7 @@ def replot(source):
     print('+', n_w[1],'+', T_w[1],'+', N_w[1],'+', P_w[1])
     print('-', n_w[2],'-', T_w[2],'-', N_w[2],'-', P_w[2])
     print("4max", '\n', pemcee_max_w)
-    print("================================="
+    print("=================================")
 
 
 def main():
@@ -551,7 +551,7 @@ def main():
         # Burning time
         logger.info("    burning samples")
         pos, prob, state = sampler.run_mcmc(
-            pos, n_iter_burn, storechain=False)  # now 100, will be 1000
+            pos, n_iter_burn)  # now 100, will be 1000
         sampler.reset()
         # Sampling time
         logger.info("    walking")
