@@ -12,7 +12,7 @@
 ### Comments:
 - Note the code is updated to work with Python 3.7.
 	- Python 3.8 *may* have issues with the `pyradex` package, you *may* encounter a decimal issue (more [here](https://github.com/keflavich/pyradex/issues/31)).  
-	
+- **How to analyse the stored chains**: you can always check the pickle files without the need to rerun the whole code again. Just use the `replot()` function to visualise the results.	
 
 ### Dependence:
 
