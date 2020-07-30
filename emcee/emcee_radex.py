@@ -343,7 +343,7 @@ def main():
         p0 = [5.6,     # np.log10(total_density)
               24,      # temperature
               18,      # 10**16.75*300, # np.log10(column)
-              np.log10(R_angle), ]  # np.log10(size)
+              np.log10(R_angle)]  # np.log10(size)
 
         # As suggested by https://arxiv.org/pdf/1212.5955.pdf
         # Further narrowing down according to Zhang et al, A&A 568, A122 (2014)
@@ -368,7 +368,7 @@ def main():
         p0 = [  4.0,    # np.log10(total_density)
                 1.4,    # np.log10(temperature)
                17.8,    # 10**16.75*300, # np.log10(column)
-              -9.85, ]  # np.log10(size)
+              -9.85]  # np.log10(size)
 
         # Simple curve_fit to find a starting point
         # Using lambda to get the R object through
