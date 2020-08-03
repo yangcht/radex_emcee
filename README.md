@@ -1,12 +1,12 @@
 # The project of fitting SLED with `PyRADEX`+`emcee`
- 
- 
+
+
 ## Why use `RADEX`+`emcee` rather than using `RADEX` grids?
 
 - This code combines `emcee` and `RADEX`, performing MCMC sampling on the RADEX-parameters space WITHOUT predefined grids, which leads to faster a convergence time and a better sampling of the parameter space.
 
 - This code directly samples the parameter space with the Affine Invariant Markov chain Monte Carlo (MCMC) Ensemble sampler. This allows a much better sampling of the parameter space. 	
- 
+
 ## Installation & usage: 
 
 ### Comments:
@@ -29,7 +29,18 @@
 ### Change number of walkers and iterations:
 - In `emcee_radex.py`, change the numbers between line 404-406.
 - In `emcee_radex_2comp.py`, change the numbers between line 540-543.
-	
+
+### Change the solver of the radiation transfer
+
+To use [`myradex`](https://github.com/fjdu/myRadex) (which may be more stable as mentioned in [Ginsberg et al. 2016](https://ui.adsabs.harvard.edu/abs/2016A%26A...586A..50G/abstract)) instead of RADEX, please uncomment the following line:
+
+```
+import pyradex.fjdu
+```
+
+and change `pyradex.Radex` to `pyradex.fjdu.Fjdu`.
+
+
 
 ## Directory structure:
 

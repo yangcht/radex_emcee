@@ -48,6 +48,7 @@ import multiprocessing
 import emcee
 import corner
 import pyradex
+# import pyradex.fjdu
 
 kms = u.km / u.s
 Jykms = u.Jy * kms
@@ -196,6 +197,14 @@ R = pyradex.Radex(species='co', datapath="radex_moldata",
                   tbackground=2.7315,
                   deltav=1.0,
                   escapeProbGeom='lvg')
+
+# R = pyradex.fjdu.Fjdu(species='co', datapath="radex_moldata",
+#                   density={'oH2':fortho*10.**10,'pH2':(1-fortho)*10.**10},
+#                   column=10**6,
+#                   temperature=20,
+#                   tbg=2.7315,
+#                   deltav=1,
+#                   escapeProbGeom='lvg')
 
 
 def replot(source):
