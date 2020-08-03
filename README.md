@@ -38,7 +38,7 @@ To use [`myradex`](https://github.com/fjdu/myRadex) (which may be more stable as
 import pyradex.fjdu
 ```
 
-and change `pyradex.Radex` to `pyradex.fjdu.Fjdu`.
+You may also need to change `pyradex.Radex` to `pyradex.fjdu.Fjdu` , and remove `validate_colliders=False`.
 
 
 
