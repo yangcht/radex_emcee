@@ -58,7 +58,7 @@ You may also need to change `pyradex.Radex` to `pyradex.fjdu.Fjdu` , and remove 
 	- `flux_for2p.dat`: flux data used in `emcee_radex_2comp.py`;
 
 ## Fitting example:
-![](./fig/SDP81.png)
+![](./fig/NA144.png)
 
 
 ## Citation
