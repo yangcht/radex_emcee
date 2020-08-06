@@ -3,28 +3,23 @@
 
 ## Why use `RADEX`+`emcee` rather than using `RADEX` grids?
 
-- This code combines `emcee` and `RADEX`, performing MCMC sampling on the RADEX-parameters space WITHOUT predefined grids, which leads to faster a convergence time and a better sampling of the parameter space.
-
+- This code combines `emcee` and `RADEX`, performing MCMC sampling in the RADEX-parameters space WITHOUT predefined grids, which leads to faster a convergence time and a better sampling of the parameter space.
 - This code directly samples the parameter space with the Affine Invariant Markov chain Monte Carlo (MCMC) Ensemble sampler. This allows a much better sampling of the parameter space. 	
 
 ## Installation & usage: 
 
-### Comments:
-- Note the code is updated to work with Python 3.7.
-	- Python 3.8 *may* have issues with the `pyradex` package, you *may* encounter a decimal issue (more [here](https://github.com/keflavich/pyradex/issues/31)).  
-- **How to analyse the stored chains**: you can always check the pickle files without the need to rerun the whole code again. Just use the `replot()` function to visualise the results.	
 
 ### Dependence:
 
 - `PyRadex`: https://github.com/keflavich/pyradex
-	- You should have `f2py` installed
 - `emcee`: https://github.com/dfm/emcee
 - `corner`: https://github.com/dfm/corner.py
 - other common packages: `numpy`, `scipy`, `astropy`, `astroquery` 
-	- the code has been tested for `numpy 1.18.5`, `scipy 1.5.0`, and `astropy 4.0.1`.
 
-### How to produce plots:
-- Just run `replot('source_name')` after executing the python script in `IPython`.
+### How to produce resulting plots:
+- The results are stored in the `.pickle` files
+- Just run `replot(“source_name”)’ after executing the python script in `IPython`.
+- You can always check the `.pickle` files without the need to rerun the whole code again. 
 
 ### Change number of walkers and iterations:
 - In `emcee_radex.py`, change the numbers between line 404-406.
@@ -39,7 +34,6 @@ import pyradex.fjdu
 ```
 
 You may also need to change `pyradex.Radex` to `pyradex.fjdu.Fjdu` , and remove `validate_colliders=False`.
-
 
 
 ## Directory structure:
@@ -62,9 +56,34 @@ You may also need to change `pyradex.Radex` to `pyradex.fjdu.Fjdu` , and remove 
 
 
 ## Citation
-Data are published in C. Yang, A. Omont, A. Beelen et al. 2017, A&A, 608, A144.
+Please cite our paper if you find this code useful. The paper also includes CO SLED data for 16 high-redshift submillimeter galaxies: [C. Yang, A. Omont, A. Beelen et al. 2017, A&A, 608, A144](http://adsabs.harvard.edu/abs/2017A%26A...608A.144Y). 
 
-***Please cite our paper (http://adsabs.harvard.edu/abs/2017A%26A...608A.144Y) if you find this code useful.***
+Bibtex:
+
+```
+@ARTICLE{2017A&A...608A.144Y,
+       author = {{Yang}, C. and {Omont}, A. and {Beelen}, A. and {Gao}, Y. and
+         {van der Werf}, P. and {Gavazzi}, R. and {Zhang}, Z. -Y. and
+         {Ivison}, R. and {Lehnert}, M. and {Liu}, D. and {Oteo}, I. and
+         {Gonz{\'a}lez-Alfonso}, E. and {Dannerbauer}, H. and {Cox}, P. and
+         {Krips}, M. and {Neri}, R. and {Riechers}, D. and {Baker}, A.~J. and
+         {Micha{\l}owski}, M.~J. and {Cooray}, A. and {Smail}, I.},
+        title = "{Molecular gas in the Herschel-selected strongly lensed submillimeter galaxies at z   2-4 as probed by multi-J CO lines}",
+      journal = {\aap},
+     keywords = {galaxies: high-redshift, galaxies: ISM, infrared: galaxies, submillimeter: galaxies, radio lines: ISM, ISM: molecules, Astrophysics - Astrophysics of Galaxies},
+         year = 2017,
+        month = dec,
+       volume = {608},
+          eid = {A144},
+        pages = {A144},
+          doi = {10.1051/0004-6361/201731391},
+archivePrefix = {arXiv},
+       eprint = {1709.04740},
+ primaryClass = {astro-ph.GA},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2017A&A...608A.144Y},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+```
 
 ## Authors of the code
 
