@@ -239,11 +239,24 @@ def replot(source):
     ax.xaxis.set_minor_locator(minorLocator_x)
     ax.yaxis.set_minor_locator(minorLocator_y)
     plot_Jup = np.arange(min(model_Jup), max(model_Jup), 0.05) # smoothing the model line
+    
+    # compute the models for chi^2 (pmin), median (pemcee) and maximum-likelihood (pemcee_max)
     f_inter_pmin = interp1d(model_Jup, model_lvg(model_Jup, pmin, R), kind='cubic')
     f_inter_pemcee = interp1d(model_Jup, model_lvg(model_Jup, pemcee, R), kind='cubic')
     f_inter_pemcee_max = interp1d(model_Jup, model_lvg(model_Jup, pemcee_max, R), kind='cubic')
-    #ax.plot(plot_Jup, f_inter_pemcee(plot_Jup), label=r'$\mathrm{median_{MCMC}}$', linestyle='--', color='#2B61DD')
+    
+    # plot the models onto the CO SLED
+    ax.plot(plot_Jup, f_inter_pemcee(plot_Jup), label=r'$\mathrm{{\chi}^2}$, linestyle='--', color='#2B61DD')    
+   #ax.plot(plot_Jup, f_inter_pemcee(plot_Jup), label=r'$\mathrm{median_{MCMC}}$', linestyle='--', color='#2B61DD')
     ax.plot(plot_Jup, f_inter_pemcee_max(plot_Jup), label=r'$\mathrm{MCMC}$', color='#FFA833')
+    
+    # plot the 100 "good models" within the [16, 84] quartile
+    inds = np.random.randint(len(narrow_flatchain), size=100)
+    for ind in inds:
+        sample = narrow_flatchain[ind]
+        f_inter_pemcee_sample = interp1d(model_Jup, model_lvg(model_Jup, sample, R), kind='cubic')
+        ax.plot(plot_Jup, f_inter_pemcee_sample(plot_Jup), color='#f5ec42', alpha=0.1)
+    
     ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
     ax.legend(loc=0, prop={'size':12}, numpoints=1)
