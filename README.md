@@ -20,6 +20,15 @@
 - The results are stored in the `.pickle` files
 - Just run `replot(“source_name”)’ after executing the python script in `IPython`.
 - You can always check the `.pickle` files without the need to rerun the whole code again. 
+- A note on a possible decoding error for the Pickle file (Python 2 --> Python 3)
+	- When you encounter an error using old Pickle file generated using Python 2:
+```
+UnicodeDecodeError: 'ascii' codec can't decode byte 0xfa in position 0: ordinal not in range(128)
+``` 
+	- You can add `, encoding='latin1'` behind the line `= pickle.load(pkl_file)`, so as `= pickle.load(pkl_file, encoding='latin1')`. This should solve the issue.
+- **Update**: added a function to plot 100 MCMC examples within the 1-sigma range for posteriors (See the last figure). 
+
+
 
 ### Change number of walkers and iterations:
 - In `emcee_radex.py`, change the numbers between line 404-406.
@@ -52,8 +61,11 @@ You may also need to change `pyradex.Radex` to `pyradex.fjdu.Fjdu` , and remove 
 	- `flux_for2p.dat`: flux data used in `emcee_radex_2comp.py`;
 
 ## Fitting example:
+A full example of a two-component fitting, the SLED plot and the corner plots:
 ![](./fig/NA144.png)
 
+Here gives an example of the updated plot style (see notes on *How to produce resulting plots*):
+![](./fig/G09H97.png)
 
 ## Citation
 Please cite our paper if you find this code useful. The paper also includes CO SLED data for 16 high-redshift submillimeter galaxies: [C. Yang, A. Omont, A. Beelen et al. 2017, A&A, 608, A144](http://adsabs.harvard.edu/abs/2017A%26A...608A.144Y). 
