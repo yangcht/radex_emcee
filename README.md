@@ -21,10 +21,7 @@
 - Just run `replot(“source_name”)’ after executing the python script in `IPython`.
 - You can always check the `.pickle` files without the need to rerun the whole code again. 
 - A note on a possible decoding error for the Pickle file (Python 2 --> Python 3)
-	- When you encounter an error using old Pickle file generated using Python 2:
-```
-UnicodeDecodeError: 'ascii' codec can't decode byte 0xfa in position 0: ordinal not in range(128)
-``` 
+	- When you encounter an error using old Pickle file generated using Python 2: ``UnicodeDecodeError: 'ascii' codec can't decode byte 0xfa in position 0: ordinal not in range(128)`` 	
 	- You can add `, encoding='latin1'` behind the line `= pickle.load(pkl_file)`, so as `= pickle.load(pkl_file, encoding='latin1')`. This should solve the issue.
 - **Update**: added a function to plot 100 MCMC examples within the 1-sigma range for posteriors (See the last figure). 
 
