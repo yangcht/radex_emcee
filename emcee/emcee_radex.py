@@ -429,19 +429,22 @@ def main():
         
         # Random starting positions
         pos = [popt + 1e-3 * np.random.randn(ndim) for i in range(nwalkers)]
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
-                                        args=(Jup, flux.value, eflux.value),
-                                        kwargs={'bounds': bounds},
-                                        threads=ncpu)
-        # Burning time
-        logger.info("    burning samples")
-        pos, prob, state = sampler.run_mcmc(
-            pos, n_iter_burn)     
-        sampler.reset()
-        # Sampling time
-        logger.info("    walking")
-        result = sampler.run_mcmc(pos, n_iter_walk)  
-        pemcee = np.percentile(sampler.flatchain, [50], axis=0)[0]
+        
+        # Multithread
+        with multiprocessing.Pool() as pool:
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
+                                            args=(Jup, flux.value, eflux.value),
+                                            kwargs={'bounds': bounds},
+                                            pool=pool)
+            # Burning time
+            logger.info("    burning samples")
+            pos, prob, state = sampler.run_mcmc(
+                pos, n_iter_burn)     
+            sampler.reset()
+            # Sampling time
+            logger.info("    walking")
+            result = sampler.run_mcmc(pos, n_iter_walk)  
+            pemcee = np.percentile(sampler.flatchain, [50], axis=0)[0]
 
         chain, lnprobability = sampler.chain, sampler.lnprobability
 
