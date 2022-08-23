@@ -18,7 +18,7 @@
 
 ### How to produce resulting plots:
 - The results are stored in the `.pickle` files
-- Just run `replot(“source_name”)’ after executing the python script in `IPython`.
+- Just run `replot(“source_name”)` after executing the python script in `IPython`.
 - You can always check the `.pickle` files without the need to rerun the whole code again. 
 - A note on a possible decoding error for the Pickle file (Python 2 --> Python 3)
 	- When you encounter an error using old Pickle file generated using Python 2: ``UnicodeDecodeError: 'ascii' codec can't decode byte 0xfa in position 0: ordinal not in range(128)`` 	
