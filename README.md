@@ -6,6 +6,13 @@
 - This code combines `emcee` and `RADEX`, performing MCMC sampling in the RADEX-parameters space WITHOUT predefined grids, which leads to faster a convergence time and a better sampling of the parameter space.
 - This code directly samples the parameter space with the Affine Invariant Markov chain Monte Carlo (MCMC) Ensemble sampler. This allows a much better sampling of the parameter space. 	
 
+## How do you know the code is doing the right calculations? 
+This is a very valid concern. Nevertheless, it is always the first practice to test your code on well-studied sources. That's what has been done: 
+- This code has been tested against a few well-studied sources. For example:
+	- APM08279+5255, [Weiss et al. 2007](https://ui.adsabs.harvard.edu/abs/2007A%26A...467..955W/abstract): our results are entirely consistent with the results in this paper. Their values, log(n_H2/cm⁻³) = 4.2 and log(T_K/K) = 2.4, are within the +/-1 sigma values and close to the maximum likelihood values from the calculations based on this code.  
+	- The Circinus Galaxy, [Zhang et al. 2014](https://ui.adsabs.harvard.edu/abs/2014A%26A...568A.122Z/abstract): similar to APM08279+5255, the results from our code are fully consistent with the results in the reference. 
+ 
+
 ## Installation & usage: 
 
 
