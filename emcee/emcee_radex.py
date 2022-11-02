@@ -117,7 +117,7 @@ def lnprior(p, bounds, R=None):
             or np.any(p[2]-p[0] <= 10.0)):   #log(NCO/dv)-log(n_H2) > 10
         logp = -np.inf
     else:
-        logp = -np.sum(np.log(bounds.dot([-1, 1]))) #a flat prior
+        logp = -np.sum(np.log10(bounds.dot([-1, 1]))) #a flat prior
     # 2. add bounds for tau, should be < 100
     #   try:
     #       tau_max = model_lvg_tau(p, R)
