@@ -113,8 +113,8 @@ def lnprior(p, bounds, R=None):
     """Uniform prior"""
     if (np.any(p > bounds[:, 1])
             or np.any(p < bounds[:, 0])
-            or np.any(p[2]-p[0] >= 17.5)     #see bounds from dv/dr
-            or np.any(p[2]-p[0] <= 10.0)):
+            or np.any(p[2]-p[0] >= 17.5)     #see bounds from dv/dr, log(NCO/dv)-log(n_H2) < 17.5 
+            or np.any(p[2]-p[0] <= 10.0)):   #log(NCO/dv)-log(n_H2) > 10
         logp = -np.inf
     else:
         logp = -np.sum(np.log(bounds.dot([-1, 1]))) #a flat prior
@@ -246,7 +246,7 @@ def replot(source):
     f_inter_pemcee_max = interp1d(model_Jup, model_lvg(model_Jup, pemcee_max, R), kind='cubic')
     
     # plot the models onto the CO SLED
-    ax.plot(plot_Jup, f_inter_pemcee(plot_Jup), label=r'$\mathrm{{\chi}^2}$, linestyle='--', color='#2B61DD')    
+    ax.plot(plot_Jup, f_inter_pmin(plot_Jup), label=r'$\mathrm{{\chi}^2}$, linestyle='--', color='#2B61DD')    
    #ax.plot(plot_Jup, f_inter_pemcee(plot_Jup), label=r'$\mathrm{median_{MCMC}}$', linestyle='--', color='#2B61DD')
     ax.plot(plot_Jup, f_inter_pemcee_max(plot_Jup), label=r'$\mathrm{MCMC}$', color='#FFA833')
     
@@ -438,8 +438,7 @@ def main():
                                             pool=pool)
             # Burning time
             logger.info("    burning samples")
-            pos, prob, state = sampler.run_mcmc(
-                pos, n_iter_burn)     
+            pos, prob, state = sampler.run_mcmc(pos, n_iter_burn)     
             sampler.reset()
             # Sampling time
             logger.info("    walking")
