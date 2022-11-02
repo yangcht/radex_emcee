@@ -323,7 +323,7 @@ def replot(source):
     ax.plot(plot_Jup,   f_inter_pemcee_max(plot_Jup), label=r'$\mathrm{{MCMC}}$', color='#FFA833')
     ax.plot(plot_Jup, f_inter_pemcee_max_w(plot_Jup), linestyle='--', color='#fcc82d')
     ax.plot(plot_Jup, f_inter_pemcee_max_c(plot_Jup), linestyle='-.', color='#ff7b33')
-    #ax.plot(plot_Jup,       f_inter_pemcee(plot_Jup), label=r'$\mathrm{median_{MCMC}}$', color='#58b82a')
+    #ax.plot(plot_Jup,       f_inter_pemin(plot_Jup), label=r'$\mathrm{median_{MCMC}}$', color='#58b82a')
     #ax.plot(plot_Jup,     f_inter_pemcee_c(plot_Jup), linestyle='--', color='#198189')
     #ax.plot(plot_Jup,     f_inter_pemcee_w(plot_Jup), linestyle=':', color='#b1d623')
     ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
