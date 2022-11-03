@@ -169,7 +169,7 @@ def lnprior(p, bounds, T_d=None, R=None):
     if (np.any((p[3] < p[7]))):
         return -np.inf
 
-    # Add bounds fro tau, should be < 100
+    # Add bounds for tau, should be < 100
     # try:
     #     tau_max = model_lvg_tau(p, R)
     # except ValueError:
