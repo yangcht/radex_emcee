@@ -259,6 +259,7 @@ def replot(source):
     
     ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
+    ax.xaxis.set_major_locator(MultipleLocator(1))
     ax.legend(loc=0, prop={'size':12}, numpoints=1)
     fig.suptitle('$\mathrm{'+source+'}$')
     fig.savefig("./single/{}_SLED.pdf".format(source))
