@@ -366,7 +366,7 @@ def replot(source):
                                 r'$\mathrm{log}_{10}({N_\mathrm{CO}}/{\mathrm{d}v}\;[\frac{\mathrm{cm}^{-2}}{\mathrm{km\,s}^{-1}}])$'],
                                 show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15}, 
                                 plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.8,
-                                quantiles=(0.16, 0.84), truths=new_pemcee_max_c,
+                                quantiles=[0.15865, 0.50, 0.84135], truths=new_pemcee_max_c,
                                 truth_color="#fcc82d", color="#198189", bins=24)
     fig.savefig("./double/{}_corner_2comp_1.pdf".format(source))
     
@@ -376,7 +376,7 @@ def replot(source):
                                 r'$\mathrm{log}_{10}({N_\mathrm{CO}}/{\mathrm{d}v}\;[\frac{\mathrm{cm}^{-2}}{\mathrm{km\,s}^{-1}}])$'],
                                 show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15}, 
                                 plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.8,
-                                quantiles=(0.16, 0.84), truths=new_pemcee_max_w,
+                                quantiles=[0.15865, 0.50, 0.84135], truths=new_pemcee_max_w,
                                 truth_color="#ff7b33", color="#b1d623", bins=24)
     fig.savefig("./double/{}_corner_2comp_2.pdf".format(source))
     
