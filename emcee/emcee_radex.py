@@ -285,7 +285,7 @@ def replot(source):
                   r'$\mathrm{log}_{10}({N_\mathrm{CO}}/{\mathrm{d}v}\;[\frac{\mathrm{cm}^{-2}}{\mathrm{km\,s}^{-1}}])$'],
           show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15}, 
           plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
-          quantiles=(0.15865, 0.84135), truths=pemcee_max[:3], truth_color="#FFA833", color="#2B61DD", bins=24)
+          quantiles=[0.15865, 0.5, 0.84135], truths=pemcee_max[:3], truth_color="#FFA833", color="#2B61DD", bins=24)
     fig.suptitle('$\mathrm{'+source+'}$',fontsize = 18)
     fig.savefig("./single/{}_corner.pdf".format(source))
 
