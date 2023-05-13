@@ -349,7 +349,7 @@ def replot(source):
                         ],
                 show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15},
                 plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.8,
-                quantiles=(0.16, 0.84), truths=np.hstack((pemcee_max_c,pemcee_max_w)), 
+                quantiles=[0.15865, 0.50, 0.84135], truths=np.hstack((pemcee_max_c,pemcee_max_w)), 
                 truth_color="#FFA833", color="#2B61DD", bins=24)
     fig.suptitle('$\mathrm{'+source+'}$',fontsize = 16)
     fig.savefig("./double/{}_corner_2comp_all.pdf".format(source))
