@@ -22,6 +22,7 @@ This is a very valid concern. Nevertheless, it is always the first practice to t
 - `emcee`: https://github.com/dfm/emcee
 - `corner`: https://github.com/dfm/corner.py
 - other common packages: `numpy`, `scipy`, `astropy`, `astroquery` 
+- **note that if you would like to directly use the compiled radex in this repo, you need to run the x86_64 version of python**
 
 ### How to produce resulting plots:
 - The results are stored in the `.pickle` files
