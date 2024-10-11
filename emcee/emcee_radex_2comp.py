@@ -20,7 +20,7 @@ import os
 # For runing the code on the clusters
 import sys
 import logging
-import _pickle as pickle  
+import _pickle as pickle
 import warnings
 import numpy as np
 from astropy.io import ascii
@@ -69,14 +69,14 @@ def model_lvg(Jup, p, R=None):
     log_density_2, log_temperature_2, log_column_2, log_size_2 = p
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        ## 1st component 
+        ## 1st component
         R.set_params(density={'oH2':fortho*10.**log_density_1,'pH2':(1-fortho)*10.**log_density_1},
                      column=10.**log_column_1,
                      temperature=10.**log_temperature_1)
         R.run_radex(validate_colliders=False,
                     reuse_last=True, reload_molfile=False)
         result_1 = R.source_line_surfbrightness # Do not use get_table()
-        ## 2nd component 
+        ## 2nd component
         R.set_params(density={'oH2':fortho*10.**log_density_2,'pH2':(1-fortho)*10.**log_density_2},
                      column=10.**log_column_2,
                      temperature=10.**log_temperature_2)
@@ -151,7 +151,7 @@ def lnprior(p, bounds, T_d=None, R=None):
     #     p[4]     p[5]     p[6]    p[7]   ## 2nd component
     log_density_1, log_temperature_1, log_column_1, log_size_1,\
     log_density_2, log_temperature_2, log_column_2, log_size_2 = p
-    
+
     # First Check boundaries
     if (np.any(p > bounds[:, 1]) or np.any(p < bounds[:, 0])):
         return -np.inf
@@ -198,13 +198,13 @@ def lnprob(p, Jup, flux, eflux, bounds=None, T_d=None):
 
 def read_data(filename):
     """Read data into a comprehensible panda frame"""
-    
+
     ######################################################
     #  Disadvantage here: only includes J_up = 11 here,  #
     #  please manually add more if you have              #
     #  J_up >= 12 CO lines                               #
     ######################################################
-    
+
     ascii_data = ascii.read(
         filename, names=[
             "SOURCE", "z", "D_L", "T_d", "line_width",
@@ -273,13 +273,13 @@ def replot(source):
     plt.ion()
     # Retrieve the data
     with open("./double/{}_bounds_2comp.pickle".format(source), 'rb') as pkl_file:
-        (source, z, bounds, T_d, 
+        (source, z, bounds, T_d,
             (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)) =  pickle.load(pkl_file)
 
     R.set_params(tbg=2.7315 * (1 + z))
 
     # Get the max posterior within +/-1 sigma range
-    flatchain = chain.reshape((chain.shape[0]*chain.shape[1]),8) 
+    flatchain = chain.reshape((chain.shape[0]*chain.shape[1]),8)
     lnp = lnprobability.reshape((lnprobability.shape[0]*lnprobability.shape[1]),1)
     lower, upper     = np.percentile(flatchain, [16, 84],axis=0)
     narrow_flatchain = flatchain[(flatchain[:,0] > lower[0]*1) & (flatchain[:,0] < upper[0]*1) & \
@@ -323,14 +323,23 @@ def replot(source):
     ax.plot(plot_Jup,   f_inter_pemcee_max(plot_Jup), label=r'$\mathrm{{MCMC}}$', color='#FFA833')
     ax.plot(plot_Jup, f_inter_pemcee_max_w(plot_Jup), linestyle='--', color='#fcc82d')
     ax.plot(plot_Jup, f_inter_pemcee_max_c(plot_Jup), linestyle='-.', color='#ff7b33')
+
     #ax.plot(plot_Jup,       f_inter_pemin(plot_Jup), label=r'$\mathrm{median_{MCMC}}$', color='#58b82a')
     #ax.plot(plot_Jup,     f_inter_pemcee_c(plot_Jup), linestyle='--', color='#198189')
     #ax.plot(plot_Jup,     f_inter_pemcee_w(plot_Jup), linestyle=':', color='#b1d623')
+
+    # Plot the 200 "good models" within the [16, 84] quartile
+    inds = np.random.randint(len(narrow_flatchain), size=200)
+    for ind in inds:
+        sample = narrow_flatchain[ind]
+        model_flux = model_lvg(model_Jup, sample, R)
+        f_inter_pemcee_sample = interp1d(model_Jup, model_flux, kind='cubic')
+        ax.plot(plot_Jup, f_inter_pemcee_sample(plot_Jup), color='#f5ec42', alpha=0.1)
+
     ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
     ax.legend(loc=0, prop={'size':11}, numpoints=1)
     ax.xaxis.set_minor_locator(minorLocator_x)
-    #ax.yaxis.set_minor_locator(minorLocator_y)
     fig.suptitle('$\mathrm{'+source+'}$',fontsize = 15)
     fig.savefig("./double/{}_SLED_2comp.pdf".format(source))
 
@@ -353,7 +362,7 @@ def replot(source):
                 truth_color="#FFA833", color="#2B61DD", bins=24)
     fig.suptitle('$\mathrm{'+source+'}$',fontsize = 16)
     fig.savefig("./double/{}_corner_2comp_all.pdf".format(source))
-    
+
     # plots for publication, remove size from the plot
     chain_cold = flatchain[:,[0,1,2]]
     chain_warm = flatchain[:,[4,5,6]]
@@ -369,7 +378,7 @@ def replot(source):
                                 quantiles=[0.15865, 0.50, 0.84135], truths=new_pemcee_max_c,
                                 truth_color="#fcc82d", color="#198189", bins=24)
     fig.savefig("./double/{}_corner_2comp_1.pdf".format(source))
-    
+
     fig = corner.corner(chain_warm,
                         labels=[r'$\mathrm{log}_{10}(n_\mathrm{H_2}\;[\mathrm{cm}^{-3}])$',
                                 r'$\mathrm{log}_{10}(T_\mathrm{kin}\;[\mathrm{K}])$',
@@ -379,7 +388,7 @@ def replot(source):
                                 quantiles=[0.15865, 0.50, 0.84135], truths=new_pemcee_max_w,
                                 truth_color="#ff7b33", color="#b1d623", bins=24)
     fig.savefig("./double/{}_corner_2comp_2.pdf".format(source))
-    
+
     # Print the MCMC results
     chain_plot_cold = np.hstack((chain_cold[:,[0,1,2]], chain_cold[:,[0]]+chain_cold[:,[1]]))
     chain_plot_warm = np.hstack((chain_warm[:,[0,1,2]], chain_warm[:,[0]]+chain_warm[:,[1]]))
@@ -387,7 +396,7 @@ def replot(source):
                          list(zip(*np.percentile(chain_plot_cold, [16, 50, 84], axis=0))))
     n_w, T_w, N_w, P_w = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
                          list(zip(*np.percentile(chain_plot_warm, [16, 50, 84], axis=0))))
-    
+
     print("#### cold component - median ####")
     print(' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0])
     print('+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1])
@@ -489,21 +498,21 @@ def main():
         # T_kin   = T_CMB -- 10^3 K
         # N_CO/dv = 10^15.5 -- 10^19.5 cm^-2 (km/s)^-1
         # dv/dr   = 0.1 -- 1000 (Tunnard+2016, Xco=5e-5), saying r ~ 1-5 kpc, delta_V = 250-700 km/s
-        #  -->   6.18e13 < N_CO/n_H2 < 6.18e17 
+        #  -->   6.18e13 < N_CO/n_H2 < 6.18e17
         #  -->   due to lensing uncertainties, add +/- 50 lensing uncertainty factor, multiply delta_V = delta_V = 250-700 km/s
-        #  -->   10.0 < log10(N_CO/dv) - log10(n_H2) < 17.5, 
+        #  -->   10.0 < log10(N_CO/dv) - log10(n_H2) < 17.5,
         # Additional constrains:
         # N_CO/(n_H2*Xco) < 2 R = 10 kpc (assuming disk is =<5 kpc, Xco=5e-5)
         #  -->   N_CO/n_H2 < 5e19, within the dv/dr range.
                            ##### 1st component #####
-        bounds = np.array([[1.5, 7.0],                                  
-                           [np.log10(2.7315 * (1 + z)), 3.0],           
-                           [14.5, 19.5],                                
+        bounds = np.array([[1.5, 7.0],
+                           [np.log10(2.7315 * (1 + z)), 3.0],
+                           [14.5, 19.5],
                            [np.log10(R_angle)-5, np.log10(R_angle)+5],
                            ##### 2nd component #####
-                           [1.5, 7.0],                                  
-                           [np.log10(2.7315 * (1 + z)), 3.0],           
-                           [14.5, 19.5],                                
+                           [1.5, 7.0],
+                           [np.log10(2.7315 * (1 + z)), 3.0],
+                           [14.5, 19.5],
                            [np.log10(R_angle)-5, np.log10(R_angle)+5]])
 
         p0 = [4.6,      # np.log10(n_H2_cold) = 3.0
@@ -546,15 +555,15 @@ def main():
 
         # Do the heavy computation
         ndim = len(popt)
-      
+
         #################### Define the number of walkers here
         nwalkers = 400       # 400 walkers
         n_iter_burn = 100    # burning phase, number of iterations = 100
         n_iter_walk = 1000   # walking phase, number of iterations = 1000
-      
+
         # Random starting positions
         pos = [popt + 1e-3 * np.random.randn(ndim) for i in range(nwalkers)]
-        
+
         # Multithread
         with multiprocessing.Pool() as pool:
             sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,

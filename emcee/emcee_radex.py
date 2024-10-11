@@ -171,7 +171,7 @@ def replot(source):
         (source, z, bounds, (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)) =  pickle.load(pkl_file)
 
     R.set_params(tbg=2.7315 * (1 + z))
-    
+
     # Get the max posterior within +/-1 sigma range
     flatchain = chain.reshape((chain.shape[0]*chain.shape[1]),4) 
     lnp = lnprobability.reshape((lnprobability.shape[0]*lnprobability.shape[1]),1)
@@ -183,9 +183,9 @@ def replot(source):
     narrow_lnp       =       lnp[(flatchain[:,0] > lower[0]*1) & (flatchain[:,0] < upper[0]*1) & \
                                  (flatchain[:,1] > lower[1]*1) & (flatchain[:,1] < upper[1]*1) & \
                                  (flatchain[:,2] > lower[2]*1) & (flatchain[:,2] < upper[2]*1) & \
-                                 (flatchain[:,3] > lower[3]*1) & (flatchain[:,3] < upper[3]*1) ]   
+                                 (flatchain[:,3] > lower[3]*1) & (flatchain[:,3] < upper[3]*1) ]
     pemcee_max       = narrow_flatchain[narrow_lnp.argmax()]
-    
+
     model_Jup = range(1, 12)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -195,31 +195,31 @@ def replot(source):
     ax.xaxis.set_minor_locator(minorLocator_x)
     ax.yaxis.set_minor_locator(minorLocator_y)
     plot_Jup = np.arange(min(model_Jup), max(model_Jup), 0.05) # smoothing the model line
-    
+
     # compute the models for chi^2 (pmin), median (pemcee) and maximum-likelihood (pemcee_max)
     f_inter_pmin = interp1d(model_Jup, model_lvg(model_Jup, pmin, R), kind='cubic')
     f_inter_pemcee = interp1d(model_Jup, model_lvg(model_Jup, pemcee, R), kind='cubic')
     f_inter_pemcee_max = interp1d(model_Jup, model_lvg(model_Jup, pemcee_max, R), kind='cubic')
-    
+
     # plot the models onto the CO SLED
-    ax.plot(plot_Jup, f_inter_pmin(plot_Jup), label=r'$\mathrm{{\chi}^2}$', linestyle='--', color='#2B61DD')    
-   #ax.plot(plot_Jup, f_inter_pemcee(plot_Jup), label=r'$\mathrm{median_{MCMC}}$', linestyle='--', color='#2B61DD')
+    ax.plot(plot_Jup, f_inter_pmin(plot_Jup), label=r'$\mathrm{{\chi}^2}$', linestyle='--', color='#2B61DD')
+    #ax.plot(plot_Jup, f_inter_pemcee(plot_Jup), label=r'$\mathrm{median_{MCMC}}$', linestyle='--', color='#2B61DD')
     ax.plot(plot_Jup, f_inter_pemcee_max(plot_Jup), label=r'$\mathrm{MCMC}$', color='#FFA833')
-    
+
     # plot the 200 "good models" within the [16, 84] quartile
     inds = np.random.randint(len(narrow_flatchain), size=200)
     for ind in inds:
         sample = narrow_flatchain[ind]
         f_inter_pemcee_sample = interp1d(model_Jup, model_lvg(model_Jup, sample, R), kind='cubic')
         ax.plot(plot_Jup, f_inter_pemcee_sample(plot_Jup), color='#f5ec42', alpha=0.1)
-    
+
     ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
     ax.xaxis.set_major_locator(MultipleLocator(1))
     ax.legend(loc=0, prop={'size':12}, numpoints=1)
     fig.suptitle('$\mathrm{'+source+'}$')
     fig.savefig("./single/{}_SLED.pdf".format(source))
-    
+
     # plots for the full corner
     plot_range=[(1.9,7.1),(1,3.02),(14.5, 19.5),(-12.5,-8.5)]
     fig = corner.corner(flatchain,
@@ -249,7 +249,7 @@ def replot(source):
     flatchain_pressure = np.hstack((flatchain[:,[0,1,2]], flatchain[:,[0]]+flatchain[:,[1]]))
     n_c, T_c, N_c, P_c= map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
                         list(zip(*np.percentile(flatchain_pressure, [16, 50, 84], axis=0))))
-    
+
     print("median")
     print(' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0])
     print('+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1])
@@ -281,10 +281,10 @@ def main():
 
         # -> Specific (velocity integrated ) Intensity
         # I = S_nu * d**2 / surf
-        
+
         # Size:
         # R_source = D_A * sqrt(size/pi)
-        # This is uncorrected for lensing magification 
+        # This is uncorrected for lensing magification
 
         # H2 density : Number density of collision partners : Unit: cm-3.  ; Allowed range: 10(-3) - 10(13)
         # Column density : Unit: cm-2 : Allowed range: 10(5) - 10(25)
@@ -293,7 +293,7 @@ def main():
         # Size : Unit sr
 
         R.set_params(tbg=2.7315 * (1 + z))
-        
+
         # Assuming, 7 kpc size and mu=10 lensing magnification
         R_angle = ((7 / (cosmo.angular_diameter_distance(z).value * 1000.0)) ** 2 * np.pi) * 10
 
@@ -305,7 +305,7 @@ def main():
         # T_kin   = T_CMB -- 1000 K
         # N_CO/dv = 10^15.5 -- 10^19.5 cm^-2 (km/s)^-1
         # dv/dr   = 0.1 -- 1000 (Tunnard+2016, Xco=5e-5), saying r ~ 1-5 kpc, d_V = 250-700 km/s
-        #  --> 6.2e13 < N_CO/n_H2 < 6.2e17 
+        #  --> 6.2e13 < N_CO/n_H2 < 6.2e17
         #  --> due to lensing uncertainties, add +/-50 lensing uncertainty factor, multiply d_V = d_V = 250-700 km/s
         #  --> 10.0 < log10(N_CO/dv) - log10(n_H2) < 17.5
         # Additional constrains:
@@ -370,15 +370,15 @@ def main():
 
         with open(f"./single/{source}_bounds.pickle", 'wb') as pkl_file:
             pickle.dump((source, z, bounds,
-                         (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)),
+                        (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)),
                         pkl_file)
 
         chain_plot = np.hstack((sampler.flatchain[:, [0, 1, 2]], sampler.flatchain[:, [0]] + sampler.flatchain[:, [1]]))
         new_pmin = np.hstack((pmin[:3], pmin[0] + pmin[1]))
-        
+
         # Quick plot the model
         # replot(source)
-        
+
         n_h2, T_kin, N_co, Pres = map(lambda v: (v[1], v[2] - v[1], v[1] - v[0]),
                                       list(zip(*np.percentile(chain_plot, [16, 50, 84], axis=0))))
 
