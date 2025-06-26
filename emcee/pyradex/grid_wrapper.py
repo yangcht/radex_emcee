@@ -32,8 +32,11 @@ def grid_wrapper(molecule,
              for tid in transition_indices}
 
     # Just a quick first run to get things initialized
-    if coltype == 'mol':
-        R = Radex(species=molecule, column=columns[0], abundance=abundances[0])
+    # ``coltype`` was never defined and therefore always raised a NameError.
+    # The initial run simply needs a Radex instance to set up the
+    # frequency grid, so instantiate it unconditionally using the first
+    # column and abundance values.
+    R = Radex(species=molecule, column=columns[0], abundance=abundances[0])
     R.deltav = deltav
     R.run_radex()
 
