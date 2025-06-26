@@ -5,7 +5,7 @@
 - `N_CO/dv`:  10^15.5 - 10^19.5 cm^-2/(km/s) 
 - `size`:  log10(R_angle) +/- 4 considering uncertainties of size and magnification
 
-#### Constrains:
+#### Constraints:
 - `dv/dr`: 0.1 -- 1000 km/s pc^-1 
 	- `10 < log10(N_CO/dv) - log10(n_H2) < 17.5`
 - `size limit`
