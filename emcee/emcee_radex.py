@@ -217,7 +217,7 @@ def replot(source):
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
     ax.xaxis.set_major_locator(MultipleLocator(1))
     ax.legend(loc=0, prop={'size':12}, numpoints=1)
-    fig.suptitle('$\mathrm{'+source+'}$')
+    fig.suptitle(r'$\mathrm{'+source+'}$')
     fig.savefig("./single/{}_SLED.pdf".format(source))
 
     # plots for the full corner
@@ -230,7 +230,7 @@ def replot(source):
                         show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15}, 
                         plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
                         quantiles=[0.15865, 0.50, 0.84135], truths=pemcee_max, truth_color="#FFA833", color="#2B61DD", bins=24)
-    fig.suptitle('$\mathrm{'+source+'}$',fontsize = 16)
+    fig.suptitle(r'$\mathrm{'+source+'}$',fontsize = 16)
     fig.savefig("./single/{}_corner_full.pdf".format(source))
 
     # plots for publication, remove size from the plot
@@ -242,7 +242,7 @@ def replot(source):
           show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15}, 
           plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
           quantiles=[0.15865, 0.5, 0.84135], truths=pemcee_max[:3], truth_color="#FFA833", color="#2B61DD", bins=24)
-    fig.suptitle('$\mathrm{'+source+'}$',fontsize = 18)
+    fig.suptitle(r'$\mathrm{'+source+'}$',fontsize = 18)
     fig.savefig("./single/{}_corner.pdf".format(source))
 
     # Print the MCMC results

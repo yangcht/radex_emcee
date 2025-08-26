@@ -305,7 +305,7 @@ def replot(source):
     ax = fig.add_subplot(1, 1, 1)
     minorLocator_x = MultipleLocator(1)
     #minorLocator_y = MultipleLocator(0.5)
-    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', label='$\mathrm{data}$', color='#000000', capsize=0)
+    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', label=r'$\mathrm{data}$', color='#000000', capsize=0)
     plot_Jup = np.arange(min(model_Jup), max(model_Jup), 0.05) # smoothing the model line
 
     pemcee_max_c = pemcee_max[:4]
@@ -340,7 +340,7 @@ def replot(source):
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
     ax.legend(loc=0, prop={'size':11}, numpoints=1)
     ax.xaxis.set_minor_locator(minorLocator_x)
-    fig.suptitle('$\mathrm{'+source+'}$',fontsize = 15)
+    fig.suptitle(r'$\mathrm{'+source+'}$',fontsize = 15)
     fig.savefig("./double/{}_SLED_2comp.pdf".format(source))
 
     # plots for the full corner
@@ -360,7 +360,7 @@ def replot(source):
                 plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.8,
                 quantiles=[0.15865, 0.50, 0.84135], truths=np.hstack((pemcee_max_c,pemcee_max_w)), 
                 truth_color="#FFA833", color="#2B61DD", bins=24)
-    fig.suptitle('$\mathrm{'+source+'}$',fontsize = 16)
+    fig.suptitle(r'$\mathrm{'+source+'}$',fontsize = 16)
     fig.savefig("./double/{}_corner_2comp_all.pdf".format(source))
 
     # plots for publication, remove size from the plot
