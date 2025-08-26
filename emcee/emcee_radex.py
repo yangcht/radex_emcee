@@ -46,9 +46,31 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+# Make mp friendlier on macOS/Jupyter; harmless elsewhere
+try:
+    multiprocessing.set_start_method("fork", force=True)
+except Exception:
+    pass
+
+# Set up logging (quiet 3rd-party debug spam)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
+logger = logging.getLogger("emcee_radex_single")
+
+# Turn down noisy libraries
+for noisy in ("matplotlib", "matplotlib.font_manager", "matplotlib.backends",
+              "astropy", "pyradex", "corner"):
+    logging.getLogger(noisy).setLevel(logging.WARNING)
+
+# Optional: also lower Matplotlib’s own level (newer versions)
+try:
+    import matplotlib as _mpl
+    _mpl.set_loglevel("warning")
+except Exception:
+    pass
+
+# Optional: corner sometimes warns when contours are under-sampled
+import warnings as _warnings
+_warnings.filterwarnings("ignore", message=".*Too few points to create valid contours.*")
 
 # Initialize constants and cosmology
 kms = u.km / u.s
@@ -92,11 +114,12 @@ def lnlike(p, Jup, flux, eflux, R=None):
     return -0.5 * (np.sum(((flux - model_flux)**2.0 / eflux**2.0) + np.log(eflux**2.0)))
 
 def lnprior(p, bounds, R=None):
-    """Uniform prior"""
-    if (np.any(p > bounds[:, 1]) or np.any(p < bounds[:, 0])
-            or np.any(p[2] - p[0] >= 17.5) or np.any(p[2] - p[0] <= 10.0)):
+    if (np.any(p > bounds[:, 1]) or np.any(p < bounds[:, 0])):
         return -np.inf
-    return -np.sum(np.log10(bounds.dot([-1, 1])))
+    # physical constraint: 10.0 < log(N_CO/dv) - log(n_H2) < 17.5
+    if (p[2] - p[0] >= 17.5) or (p[2] - p[0] <= 10.0):
+        return -np.inf
+    return 0.0
 
 def lnprob(p, Jup, flux, eflux, bounds=None):
     lp = lnprior(p, bounds, R=R)
@@ -168,12 +191,12 @@ def replot(source):
     plt.ion()
     # Retrieve the data
     with open("./single/{}_bounds.pickle".format(source), 'rb') as pkl_file:
-        (source, z, bounds, (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)) =  pickle.load(pkl_file)
+        (source, z, bounds, (Jup, flux, eflux), (popt, pcov), pmin, theta_med, (chain, lnprobability)) = pickle.load(pkl_file)
 
     R.set_params(tbg=2.7315 * (1 + z))
 
     # Get the max posterior within +/-1 sigma range
-    flatchain = chain.reshape((chain.shape[0]*chain.shape[1]),4) 
+    flatchain = chain.reshape((chain.shape[0]*chain.shape[1]),4)
     lnp = lnprobability.reshape((lnprobability.shape[0]*lnprobability.shape[1]),1)
     lower, upper     = np.percentile(flatchain, [16, 84],axis=0)
     narrow_flatchain = flatchain[(flatchain[:,0] > lower[0]*1) & (flatchain[:,0] < upper[0]*1) & \
@@ -198,7 +221,7 @@ def replot(source):
 
     # compute the models for chi^2 (pmin), median (pemcee) and maximum-likelihood (pemcee_max)
     f_inter_pmin = interp1d(model_Jup, model_lvg(model_Jup, pmin, R), kind='cubic')
-    f_inter_pemcee = interp1d(model_Jup, model_lvg(model_Jup, pemcee, R), kind='cubic')
+    f_inter_med  = interp1d(model_Jup, model_lvg(model_Jup, theta_med, R), kind='cubic')
     f_inter_pemcee_max = interp1d(model_Jup, model_lvg(model_Jup, pemcee_max, R), kind='cubic')
 
     # plot the models onto the CO SLED
@@ -227,7 +250,7 @@ def replot(source):
                                 r'$\mathrm{log}_{10}(T_\mathrm{kin}\;[\mathrm{K}])$',
                                 r'$\mathrm{log}_{10}({N_\mathrm{CO}}/{\mathrm{d}v}\;[\frac{\mathrm{cm}^{-2}}{\mathrm{km\,s}^{-1}}])$',
                                 r'$\mathrm{log}_{10}(\mathrm{[size\,sr^{-1}]})$'],
-                        show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15}, 
+                        show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15},
                         plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
                         quantiles=[0.15865, 0.50, 0.84135], truths=pemcee_max, truth_color="#FFA833", color="#2B61DD", bins=24)
     fig.suptitle(r'$\mathrm{'+source+'}$',fontsize = 16)
@@ -353,27 +376,36 @@ def main():
         pos = [popt + 1e-3 * np.random.randn(ndim) for i in range(nwalkers)]
 
         # Multithread
-        with multiprocessing.Pool() as pool:
-            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
-                                            args=(Jup, flux.value, eflux.value),
-                                            kwargs={'bounds': bounds},
-                                            pool=pool)
+        with multiprocessing.Pool(processes=min(multiprocessing.cpu_count(), nwalkers)) as pool:
+            sampler = emcee.EnsembleSampler(
+                nwalkers, ndim, lnprob,
+                args=(Jup, flux.value, eflux.value),
+                kwargs={'bounds': bounds},
+                pool=pool
+            )
             logger.info("burning samples")
-            pos, prob, state = sampler.run_mcmc(pos, n_iter_burn)
+            state = sampler.run_mcmc(pos, n_iter_burn, progress=False)
             sampler.reset()
 
             logger.info("walking")
-            result = sampler.run_mcmc(pos, n_iter_walk)
-            pemcee = np.percentile(sampler.flatchain, [50], axis=0)[0]
+            sampler.run_mcmc(state, n_iter_walk, progress=False)
 
-        chain, lnprobability = sampler.chain, sampler.lnprobability
+        # emcee v3: pull results this way
+        chain = sampler.get_chain()               # (steps, walkers, ndim)
+        lnprobability = sampler.get_log_prob()    # (steps, walkers)
+        flatchain = sampler.get_chain(flat=True)  # (steps*walkers, ndim)
+
+        # Representative point to save with results (posterior median)
+        theta_med = np.percentile(flatchain, 50, axis=0)
 
         with open(f"./single/{source}_bounds.pickle", 'wb') as pkl_file:
-            pickle.dump((source, z, bounds,
-                        (Jup, flux, eflux), (popt, pcov), pmin, pemcee, (chain, lnprobability)),
-                        pkl_file)
+            pickle.dump(
+                (source, z, bounds,
+                 (Jup, flux, eflux), (popt, pcov), pmin, theta_med, (chain, lnprobability)),
+                pkl_file
+            )
 
-        chain_plot = np.hstack((sampler.flatchain[:, [0, 1, 2]], sampler.flatchain[:, [0]] + sampler.flatchain[:, [1]]))
+        chain_plot = np.hstack((flatchain[:, [0, 1, 2]], flatchain[:, [0]] + flatchain[:, [1]]))
         new_pmin = np.hstack((pmin[:3], pmin[0] + pmin[1]))
 
         # Quick plot the model
