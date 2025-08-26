@@ -43,7 +43,7 @@ matplotlib.rcParams['mathtext.rm'] = 'Linux Biolinum'
 matplotlib.rcParams['mathtext.it'] = 'Linux Biolinum:italic'
 matplotlib.rcParams['mathtext.bf'] = 'Linux Biolinum:bold'
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 
 # Make mp friendlier on macOS/Jupyter; harmless elsewhere
