@@ -103,15 +103,42 @@ def model_lvg(Jup, params, R=None):
     intensity = (result[np.asarray(np.int_(Jup)) - 1] * (10.**log_size * u.sr) * (1. * kms)).to(Jykms)
     return intensity.value
 
-def lnlike(p, Jup, flux, eflux, R=None):
+def lnlike(p, Jup, flux, eflux, R=None, sigma_floor=1e-12):
     """Likelihood function"""
     try:
         model_flux = model_lvg(Jup, p, R)
     except ValueError:
         return -np.inf
-    if np.any(np.isnan(model_flux)):
+
+    # Cast to float64 and basic finiteness checks
+    flux       = np.asarray(flux, dtype=np.float64)
+    model_flux = np.asarray(model_flux, dtype=np.float64)
+    eflux      = np.asarray(eflux, dtype=np.float64)
+
+    if not (np.all(np.isfinite(flux)) and np.all(np.isfinite(model_flux))):
         return -np.inf
-    return -0.5 * (np.sum(((flux - model_flux)**2.0 / eflux**2.0) + np.log(eflux**2.0)))
+
+    # Guard against zero/too-small uncertainties
+    e = np.maximum(np.abs(eflux), sigma_floor)
+    if not np.all(np.isfinite(e)):
+        return -np.inf
+
+    # Standardized residuals
+    with np.errstate(over='ignore', divide='ignore', invalid='ignore'):
+        r = (flux - model_flux) / e
+
+    # Bail out cleanly if residuals are non-finite or astronomically large
+    if not np.all(np.isfinite(r)):
+        return -np.inf
+    max_safe = np.sqrt(np.finfo(np.float64).max) / 10.0  # generous headroom
+    if np.any(np.abs(r) > max_safe):
+        return -np.inf
+
+    # chi2 and log term (use 2*log(sigma) instead of log(sigma**2))
+    chi2 = np.dot(r, r)
+    log_term = 2.0 * np.sum(np.log(e))
+
+    return -0.5 * (chi2 + log_term)
 
 def lnprior(p, bounds, R=None):
     if (np.any(p > bounds[:, 1]) or np.any(p < bounds[:, 0])):

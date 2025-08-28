@@ -168,15 +168,34 @@ def residual(p, R=None, Jup=None, flux=None, eflux=None):
     return (flux - model_flux) / eflux
 
 
-def lnlike(p, Jup, flux, eflux, R=None):
+def lnlike(p, Jup, flux, eflux, R=None, sigma_floor=1e-12):
     try:
         model_flux = model_lvg(Jup, p, R)
     except ValueError:
         return -np.inf
-    if np.any(np.isnan(model_flux)):
+
+    # Force float64 and check finiteness
+    flux       = np.asarray(flux, dtype=np.float64)
+    model_flux = np.asarray(model_flux, dtype=np.float64)
+    eflux      = np.asarray(eflux, dtype=np.float64)
+
+    if not (np.all(np.isfinite(flux)) and np.all(np.isfinite(model_flux))):
         return -np.inf
-    chi2 = ((flux - model_flux) ** 2.0) / (eflux ** 2.0)
-    return -0.5 * (np.sum(chi2 + np.log(eflux ** 2.0)))
+
+    # Guard against zero/too-small uncertainties
+    e = np.maximum(np.abs(eflux), sigma_floor)
+    if not np.all(np.isfinite(e)):
+        return -np.inf
+
+    # Work with standardized residuals; bail out before squaring if they’re enormous
+    r = (flux - model_flux) / e
+    max_safe = np.sqrt(np.finfo(np.float64).max) / 10.0  # ~1e153 as a generous cap
+    if np.any(~np.isfinite(r)) or np.any(np.abs(r) > max_safe):
+        return -np.inf
+
+    # Sum of squares without creating huge intermediates
+    chi2 = np.dot(r, r)
+    return -0.5 * (chi2 + 2.0 * np.sum(np.log(e)))
 
 
 def lnprior(p, bounds, T_d=None, R=None):
