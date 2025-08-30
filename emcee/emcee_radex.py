@@ -37,19 +37,32 @@ import corner
 import pyradex
 
 import matplotlib
-# Define the fonts to make plots look consistent across different machines
-matplotlib.rcParams['mathtext.fontset'] = 'custom'
-matplotlib.rcParams['mathtext.rm'] = 'Linux Biolinum'
-matplotlib.rcParams['mathtext.it'] = 'Linux Biolinum:italic'
-matplotlib.rcParams['mathtext.bf'] = 'Linux Biolinum:bold'
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
+
+# Adopt a science-friendly plotting style with consistent fonts
+try:
+    import scienceplots  # optional dependency
+    plt.style.use(['science', 'no-latex'])
+except Exception:
+    plt.style.use('seaborn-colorblind')
+
+matplotlib.rcParams.update({
+    'font.family': 'serif',
+    'font.size': 14,
+    'axes.titlesize': 16,
+    'axes.labelsize': 14,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 12,
+})
+
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 
-# Make mp friendlier on macOS/Jupyter; harmless elsewhere
+# Make multiprocessing behave reasonably across platforms
 try:
-    multiprocessing.set_start_method("fork", force=True)
-except Exception:
+    multiprocessing.set_start_method("fork", force=False)
+except (RuntimeError, ValueError):
     pass
 
 # Set up logging (quiet 3rd-party debug spam)
@@ -81,14 +94,26 @@ cosmo = FlatLambdaCDM(H0=67.8 * u.km / u.s / u.Mpc, Om0=0.308)
 opr = 3
 fortho = opr / (1 + opr)
 
-# Initialize pyradex
-R = pyradex.Radex(species='co', datapath="radex_moldata",
-                  density={'oH2': fortho * 10.**10.0, 'pH2': (1 - fortho) * 10.**10.0},
-                  column=10.0**6.0,
-                  temperature=20.0,
-                  tbackground=2.7315,
-                  deltav=1.0,
-                  escapeProbGeom='lvg')
+# pyradex handle.  Each process needs its own instance when using the
+# default 'spawn' start method on some platforms, so we create it via an
+# initializer.
+R = None
+
+
+def init_radex(tbg=2.7315):
+    """Initialise global pyradex.Radex instance for each process."""
+    global R
+    if R is None:
+        R = pyradex.Radex(
+            species='co',
+            datapath="radex_moldata",
+            density={'oH2': fortho * 10.**10.0, 'pH2': (1 - fortho) * 10.**10.0},
+            column=10.0**6.0,
+            temperature=20.0,
+            tbackground=tbg,
+            deltav=1.0,
+            escapeProbGeom='lvg'
+        )
 
 # Function definitions
 def model_lvg(Jup, params, R=None):
@@ -146,7 +171,27 @@ def lnprior(p, bounds, R=None):
     # physical constraint: 10.0 < log(N_CO/dv) - log(n_H2) < 17.5
     if (p[2] - p[0] >= 17.5) or (p[2] - p[0] <= 10.0):
         return -np.inf
+    # limit maximum optical depth
+    try:
+        if max_tau(p, R) > 100:
+            return -np.inf
+    except ValueError:
+        return -np.inf
     return 0.0
+
+
+def max_tau(p, R=None):
+    """Return maximum optical depth for parameter set."""
+    log_density, log_temperature, log_column, _ = p
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        R.set_params(density={'oH2': fortho * 10.**log_density,
+                              'pH2': (1 - fortho) * 10.**log_density},
+                     column=10.**log_column,
+                     temperature=10.**log_temperature)
+        R.run_radex(validate_colliders=False, reuse_last=True, reload_molfile=False)
+        tau = np.amax(R.tau)
+    return tau
 
 def lnprob(p, Jup, flux, eflux, bounds=None):
     lp = lnprior(p, bounds, R=R)
@@ -214,13 +259,12 @@ def get_source(source, data):
     return z, line_width, Jup, flux, eflux
 
 def replot(source):
-
     plt.ion()
     # Retrieve the data
     with open("./single/{}_bounds.pickle".format(source), 'rb') as pkl_file:
         (source, z, bounds, (Jup, flux, eflux), (popt, pcov), pmin, theta_med, (chain, lnprobability)) = pickle.load(pkl_file)
 
-    R.set_params(tbg=2.7315 * (1 + z))
+    init_radex(tbg=2.7315 * (1 + z))
 
     # Get the max posterior within +/-1 sigma range
     flatchain = chain.reshape((chain.shape[0]*chain.shape[1]),4)
@@ -267,7 +311,7 @@ def replot(source):
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
     ax.xaxis.set_major_locator(MultipleLocator(1))
     ax.legend(loc=0, prop={'size':12}, numpoints=1)
-    fig.suptitle(r'$\mathrm{'+source+'}$')
+    fig.suptitle(r'$\mathrm{'+source+'}$', fontsize=16)
     fig.savefig("./single/{}_SLED.pdf".format(source))
 
     # plots for the full corner
@@ -280,7 +324,7 @@ def replot(source):
                         show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15},
                         plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
                         quantiles=[0.15865, 0.50, 0.84135], truths=pemcee_max, truth_color="#FFA833", color="#2B61DD", bins=24)
-    fig.suptitle(r'$\mathrm{'+source+'}$',fontsize = 16)
+    fig.suptitle(r'$\mathrm{'+source+'}$', fontsize=16)
     fig.savefig("./single/{}_corner_full.pdf".format(source))
 
     # plots for publication, remove size from the plot
@@ -292,7 +336,7 @@ def replot(source):
           show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15}, 
           plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
           quantiles=[0.15865, 0.5, 0.84135], truths=pemcee_max[:3], truth_color="#FFA833", color="#2B61DD", bins=24)
-    fig.suptitle(r'$\mathrm{'+source+'}$',fontsize = 18)
+    fig.suptitle(r'$\mathrm{'+source+'}$', fontsize=16)
     fig.savefig("./single/{}_corner.pdf".format(source))
 
     # Print the MCMC results
@@ -307,6 +351,7 @@ def replot(source):
     print("4max", '\n', pemcee_max)
 
 def main():
+    init_radex()
     data = read_data("../data/flux.dat")
 
     if not os.path.exists("./single"):
@@ -403,7 +448,9 @@ def main():
         pos = [popt + 1e-3 * np.random.randn(ndim) for i in range(nwalkers)]
 
         # Multithread
-        with multiprocessing.Pool(processes=min(multiprocessing.cpu_count(), nwalkers)) as pool:
+        with multiprocessing.Pool(processes=min(multiprocessing.cpu_count(), nwalkers),
+                                  initializer=init_radex,
+                                  initargs=(2.7315 * (1 + z),)) as pool:
             sampler = emcee.EnsembleSampler(
                 nwalkers, ndim, lnprob,
                 args=(Jup, flux.value, eflux.value),
