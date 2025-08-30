@@ -4,34 +4,35 @@
 ## Why use `RADEX`+`emcee` rather than using `RADEX` grids?
 
 - This code combines `emcee` and `RADEX`, performing MCMC sampling in the RADEX-parameters space WITHOUT predefined grids, which leads to faster a convergence time and a better sampling of the parameter space.
-- This code directly samples the parameter space with the Affine Invariant Markov chain Monte Carlo (MCMC) Ensemble sampler. This allows a much better sampling of the parameter space. 	
+- This code directly samples the parameter space with the Affine Invariant Markov chain Monte Carlo (MCMC) Ensemble sampler. This allows a much better sampling of the parameter space.
 
-## How do you know the code is doing the right calculations? 
-This is a very valid concern. Nevertheless, it is always the first practice to test your code on well-studied sources (and you can also test the code yourself by comparing with literatures). That's what has been done: 
+## How do you know the code is doing the right calculations?
+This is a very valid concern. Nevertheless, it is always the first practice to test your code on well-studied sources (and you can also test the code yourself by comparing with literatures). That's what has been done:
 - This code has been tested against a few well-studied sources. For example:
-	- APM08279+5255, [Weiss et al. 2007](https://ui.adsabs.harvard.edu/abs/2007A%26A...467..955W/abstract): our results are entirely consistent with the results in this paper. Their values, log(n_H2/cm⁻³) = 4.2 and log(T_K/K) = 2.4, are within the +/-1 sigma values and close to the maximum likelihood values from the calculations based on this code.  
-	- The Circinus Galaxy, [Zhang et al. 2014](https://ui.adsabs.harvard.edu/abs/2014A%26A...568A.122Z/abstract): similar to APM08279+5255, the results from our code are fully consistent with the results in the reference. 
- 
+	- APM08279+5255, [Weiss et al. 2007](https://ui.adsabs.harvard.edu/abs/2007A%26A...467..955W/abstract): our results are entirely consistent with the results in this paper. Their values, log(n_H2/cm⁻³) = 4.2 and log(T_K/K) = 2.4, are within the +/-1 sigma values and close to the maximum likelihood values from the calculations based on this code.
+	- The Circinus Galaxy, [Zhang et al. 2014](https://ui.adsabs.harvard.edu/abs/2014A%26A...568A.122Z/abstract): similar to APM08279+5255, the results from our code are fully consistent with the results in the reference.
 
-## Installation & usage: 
+
+## Installation & usage:
 
 
 ### Dependence:
 
 - `PyRadex`: https://github.com/keflavich/pyradex
 - `emcee`: https://github.com/dfm/emcee
-- `corner`: https://github.com/dfm/corner.py
-- other common packages: `numpy`, `scipy`, `astropy`, `astroquery` 
+- `Corner`: https://github.com/dfm/corner.py
+- Other common packages: `numpy`, `scipy`, `astropy`, `astroquery`
+- The plots are using the [Herschel Fonts](https://github.com/yangcht/Hershey_font_TTF).
 - **note that if you would like to directly use the compiled radex in this repo, you need to run the x86_64 version of python**
 
 ### How to produce resulting plots:
 - The results are stored in the `.pickle` files
 - Just run `replot(“source_name”)` after executing the python script in `IPython`.
-- You can always check the `.pickle` files without the need to rerun the whole code again. 
+- You can always check the `.pickle` files without the need to rerun the whole code again.
 - A note on a possible decoding error for the Pickle file (Python 2 --> Python 3)
-	- When you encounter an error using old Pickle file generated using Python 2: ``UnicodeDecodeError: 'ascii' codec can't decode byte 0xfa in position 0: ordinal not in range(128)`` 	
+	- When you encounter an error using old Pickle file generated using Python 2: ``UnicodeDecodeError: 'ascii' codec can't decode byte 0xfa in position 0: ordinal not in range(128)``
 	- You can add `, encoding='latin1'` behind the line `= pickle.load(pkl_file)`, so as `= pickle.load(pkl_file, encoding='latin1')`. This should solve the issue.
-- **Update**: added a function to plot 100 MCMC examples within the 1-sigma range for posteriors (See the last figure). 
+- **Update**: added a function to plot 100 MCMC examples within the 1-sigma range for posteriors (See the last figure).
 
 
 

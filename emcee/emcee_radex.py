@@ -44,8 +44,9 @@ try:
 except Exception:
     plt.style.use('seaborn-colorblind')
 
+# Recommend to install the AVHerschey fonts
 matplotlib.rcParams.update({
-    'font.family': 'serif',
+    'font.family': 'AVHershey Complex',
     'font.size': 14,
     'axes.titlesize': 16,
     'axes.labelsize': 14,
@@ -59,6 +60,12 @@ try:
     multiprocessing.set_start_method("fork", force=False)
 except (RuntimeError, ValueError):
     pass
+
+matplotlib.rcParams['mathtext.fontset'] = 'custom'
+matplotlib.rcParams['mathtext.rm'] = 'AVHershey Complex:style=normal:weight=medium'
+matplotlib.rcParams['mathtext.it'] = 'AVHershey Complex:style=italic:weight=medium'
+matplotlib.rcParams['mathtext.bf'] = 'AVHershey Complex:style=normal:weight=bold'
+matplotlib.use('Agg')
 
 # Set up logging (quiet 3rd-party debug spam)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")

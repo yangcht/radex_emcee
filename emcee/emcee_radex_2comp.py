@@ -47,8 +47,9 @@ try:
 except Exception:
     plt.style.use('seaborn-colorblind')
 
+# Recommend to install the AVHerschey fonts
 matplotlib.rcParams.update({
-    'font.family': 'serif',
+    'font.family': 'AVHershey Complex',
     'font.size': 14,
     'axes.titlesize': 16,
     'axes.labelsize': 14,
@@ -71,6 +72,12 @@ try:
     matplotlib.set_loglevel("warning")
 except Exception:
     pass
+
+matplotlib.rcParams['mathtext.fontset'] = 'custom'
+matplotlib.rcParams['mathtext.rm'] = 'AVHershey Complex:style=normal:weight=medium'
+matplotlib.rcParams['mathtext.it'] = 'AVHershey Complex:style=italic:weight=medium'
+matplotlib.rcParams['mathtext.bf'] = 'AVHershey Complex:style=normal:weight=bold'
+matplotlib.use('Agg')
 
 # Corner sometimes emits this when sample windows are too tight — safe to ignore
 warnings.filterwarnings("ignore", message=".*Too few points to create valid contours.*")
