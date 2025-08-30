@@ -16,36 +16,46 @@
 #SBATCH --mail-type=END
 
 # autopep8 --ignore E26 emcee_radex_2comp.py
-import os
-import sys
-import warnings
 import logging
+import multiprocessing as mp
+import os
+import warnings
 import _pickle as pickle
-import numpy as np
 
-from astropy.io import ascii
-from astropy.table import Table
+import numpy as np
 from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
-
-from scipy.optimize import curve_fit, minimize
+from astropy.io import ascii
+from astropy.table import Table
 from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit, minimize
 
-# ---- Matplotlib: set backend before importing pyplot
-import matplotlib
-matplotlib.use('Agg')  # headless PDF/PNG backend
-# Make mathtext consistent across machines (optional)
-matplotlib.rcParams['mathtext.fontset'] = 'custom'
-matplotlib.rcParams['mathtext.rm'] = 'Linux Biolinum'
-matplotlib.rcParams['mathtext.it'] = 'Linux Biolinum:italic'
-matplotlib.rcParams['mathtext.bf'] = 'Linux Biolinum:bold'
-from matplotlib import pyplot as plt
-from matplotlib.ticker import MultipleLocator
-
-import multiprocessing as mp
 import emcee
 import corner
 import pyradex
+
+# ---- Matplotlib: set backend before importing pyplot
+import matplotlib
+matplotlib.use('Agg')  # headless backend for scripts
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MultipleLocator
+
+# Adopt a standard science plotting style
+try:
+    import scienceplots  # optional dependency
+    plt.style.use(['science', 'no-latex'])
+except Exception:
+    plt.style.use('seaborn-colorblind')
+
+matplotlib.rcParams.update({
+    'font.family': 'serif',
+    'font.size': 14,
+    'axes.titlesize': 16,
+    'axes.labelsize': 14,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 12,
+})
 
 # ------------------------------- Logging & Warnings -------------------------------
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
@@ -73,8 +83,8 @@ Jykms = u.Jy * kms
 
 # CPU count for multiprocessing
 try:
-    mp.set_start_method("fork", force=True)  # best on Linux/macOS
-except Exception:
+    mp.set_start_method("fork", force=False)  # prefer 'fork' where available
+except (RuntimeError, ValueError):
     pass
 ncpu = mp.cpu_count()
 
@@ -83,18 +93,24 @@ opr = 3.0
 fortho = opr / (1.0 + opr)
 
 # ------------------------------- RADEX handle (module-level) -------------------------------
-# The pyradex.Radex object MUST be module-level for lnprob to work well with multiprocessing.
-# N_CO is degenerate with dv; here we use deltav=1 km/s and fit N_CO/dv effectively.
-R = pyradex.Radex(
-    species='co',
-    datapath="radex_moldata",
-    density={'oH2': fortho * 10.**10.0, 'pH2': (1 - fortho) * 10.**10.0},
-    column=10.**6.0,
-    temperature=20.0,
-    tbackground=2.7315,  # <-- correct keyword for Radex
-    deltav=1.0,
-    escapeProbGeom='lvg'
-)
+# Each process creates its own Radex instance for portability across start methods.
+R = None
+
+
+def init_radex(tbg=2.7315):
+    """Initialise global pyradex.Radex instance."""
+    global R
+    if R is None:
+        R = pyradex.Radex(
+            species='co',
+            datapath="radex_moldata",
+            density={'oH2': fortho * 10.**10.0, 'pH2': (1 - fortho) * 10.**10.0},
+            column=10.**6.0,
+            temperature=20.0,
+            tbackground=tbg,
+            deltav=1.0,
+            escapeProbGeom='lvg'
+        )
 
 # ------------------------------- Models -------------------------------
 def model_lvg(Jup, p, R=None):
@@ -220,22 +236,22 @@ def lnprior(p, bounds, T_d=None, R=None):
     if log_size_1 < log_size_2:
         return -np.inf
 
-    # Optional tau prior (disabled by default)
-    # try:
-    #     if model_lvg_tau(p, R) > 100:
-    #         return -np.inf
-    # except ValueError:
-    #     return -np.inf
+    # Limit maximum optical depth for either component
+    try:
+        if model_lvg_tau(p, R) > 100:
+            return -np.inf
+    except ValueError:
+        return -np.inf
 
     # Priors: Gaussian on T_cold (around T_d) + flat within bounds otherwise
     logp = 0.0
     for idx, (value, bound) in enumerate(zip(p, bounds)):
         if idx == 1 and T_d is not None:  # log10(T_cold)
             T_kin = 10.0 ** value
-            sigma = 1.0 * T_d
+            sigma = 0.1 * T_d
             # Gaussian in linear T around dust temperature
-            logp += ( - ((T_kin - T_d) / sigma) ** 2.0 / 2.0
-                      - np.log(sigma * np.sqrt(2.0 * np.pi)) )
+            logp += (-((T_kin - T_d) / sigma) ** 2.0 / 2.0
+                     - np.log(sigma * np.sqrt(2.0 * np.pi)))
         else:
             # Uniform within bounds (constant; can be omitted since it's a constant offset)
             logp += - (bound[1] - bound[0])
@@ -293,7 +309,7 @@ def replot(source):
         (source, z, bounds, T_d,
          (Jup, flux, eflux), (popt, pcov), pmin, theta_med, (chain, lnprobability)) = pickle.load(pkl_file)
 
-    R.set_params(tbg=2.7315 * (1 + z))
+    init_radex(tbg=2.7315 * (1 + z))
 
     # Build flatchain & within-1σ slice to get a MAP-ish point
     flatchain = chain.reshape((-1, 8))
@@ -337,9 +353,9 @@ def replot(source):
 
     ax.set_xlabel(r'$J_\mathrm{up}$', fontsize=14)
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$', fontsize=14)
-    ax.legend(loc=0, prop={'size': 11}, numpoints=1)
+    ax.legend(loc=0, prop={'size': 12}, numpoints=1)
     ax.xaxis.set_minor_locator(minorLocator_x)
-    fig.suptitle(r'$\mathrm{' + source + '}$', fontsize=15)
+    fig.suptitle(r'$\mathrm{' + source + '}$', fontsize=16)
     fig.savefig(f"./double/{source}_SLED_2comp.pdf", bbox_inches='tight')
     plt.close(fig)
 
@@ -405,7 +421,7 @@ def replot(source):
 
     # Print median +/−1σ for (log n, log T, log N, log P=log n + log T)
     chain_cold_P = np.hstack((chain_cold, chain_cold[:, [0]] + chain_cold[:, [1]]))
-    chain_warm_P = np.hstack((chain_warm, chain_warm[:, [0]] + chain_warm[:, [1]]))
+    chain_warm_P = np.hstack((chain_warm, chain_warm[:, [0]] + chain_warm[:, [1]]))  # log P = log n + log T
 
     n_c, T_c, N_c, P_c = map(lambda v: (v[1], v[2] - v[1], v[1] - v[0]),
                              list(zip(*np.percentile(chain_cold_P, [16, 50, 84], axis=0))))
@@ -427,6 +443,7 @@ def replot(source):
 
 # ------------------------------- Main -------------------------------
 def main():
+    init_radex()
     data = read_data("../data/flux_for2p.dat")
 
     if not os.path.exists("./double"):
@@ -501,7 +518,8 @@ def main():
         # Random starting positions around curve_fit result
         pos = [popt + 1e-3 * np.random.randn(ndim) for _ in range(nwalkers)]
 
-        with mp.Pool(processes=min(ncpu, nwalkers)) as pool:
+        with mp.Pool(processes=min(ncpu, nwalkers), initializer=init_radex,
+                     initargs=(2.7315 * (1 + z),)) as pool:
             sampler = emcee.EnsembleSampler(
                 nwalkers, ndim, lnprob,
                 args=(Jup, flux.value, eflux.value),
@@ -536,7 +554,7 @@ def main():
         chain_cold = flatchain[:, [0, 1, 2]]
         chain_warm = flatchain[:, [4, 5, 6]]
         chain_cold_P = np.hstack((chain_cold, chain_cold[:, [0]] + chain_cold[:, [1]]))
-        chain_warm_P = np.hstack((chain_warm, chain_warm[:, [0]] + chain_warm[:, [5 - 4]]))  # 5 is T_w index in warm-set
+        chain_warm_P = np.hstack((chain_warm, chain_warm[:, [0]] + chain_warm[:, [1]]))  # log P = log n + log T
 
         n_c, T_c, N_c, P_c = map(lambda v: (v[1], v[2] - v[1], v[1] - v[0]),
                                  list(zip(*np.percentile(chain_cold_P, [16, 50, 84], axis=0))))
