@@ -154,30 +154,6 @@ def model_single_lvg(Jup, p, R=None):
     Jup_idx = np.asarray(np.int_(Jup)) - 1
     intensity = (result[Jup_idx] * (10.**log_size * u.sr) * (1. * kms)).to(Jykms)
     return intensity.value
-
-
-def model_lvg_tau(p, R=None):
-    # component 1  +  component 2
-    log_density_1, log_temperature_1, log_column_1, log_size_1, \
-    log_density_2, log_temperature_2, log_column_2, log_size_2 = p
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        # 1st
-        R.set_params(density={'oH2': fortho * 10.**log_density_1,
-                              'pH2': (1 - fortho) * 10.**log_density_1},
-                     column=10.**log_column_1,
-                     temperature=10.**log_temperature_1)
-        R.run_radex(validate_colliders=False, reuse_last=True, reload_molfile=False)
-        tau1 = np.amax(R.tau)
-        # 2nd
-        R.set_params(density={'oH2': fortho * 10.**log_density_2,
-                              'pH2': (1 - fortho) * 10.**log_density_2},
-                     column=10.**log_column_2,
-                     temperature=10.**log_temperature_2)
-        R.run_radex(validate_colliders=False, reuse_last=True, reload_molfile=False)
-        tau2 = np.amax(R.tau)
-    return np.amax([tau1, tau2])
-
 # ------------------------------- Likelihood & Priors -------------------------------
 def residual(p, R=None, Jup=None, flux=None, eflux=None):
     model_flux = model_lvg(Jup, p, R)
@@ -236,19 +212,12 @@ def lnprior(p, bounds, T_d=None, R=None):
     if log_size_1 < log_size_2:
         return -np.inf
 
-    # Limit maximum optical depth for either component
-    try:
-        if model_lvg_tau(p, R) > 100:
-            return -np.inf
-    except ValueError:
-        return -np.inf
-
     # Priors: Gaussian on T_cold (around T_d) + flat within bounds otherwise
     logp = 0.0
     for idx, (value, bound) in enumerate(zip(p, bounds)):
         if idx == 1 and T_d is not None:  # log10(T_cold)
             T_kin = 10.0 ** value
-            sigma = 0.1 * T_d
+            sigma = T_d
             # Gaussian in linear T around dust temperature
             logp += (-((T_kin - T_d) / sigma) ** 2.0 / 2.0
                      - np.log(sigma * np.sqrt(2.0 * np.pi)))
@@ -310,6 +279,7 @@ def replot(source):
          (Jup, flux, eflux), (popt, pcov), pmin, theta_med, (chain, lnprobability)) = pickle.load(pkl_file)
 
     init_radex(tbg=2.7315 * (1 + z))
+    R.set_params(tbg=2.7315 * (1 + z))
 
     # Build flatchain & within-1σ slice to get a MAP-ish point
     flatchain = chain.reshape((-1, 8))

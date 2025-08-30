@@ -165,27 +165,7 @@ def lnprior(p, bounds, R=None):
     # physical constraint: 10.0 < log(N_CO/dv) - log(n_H2) < 17.5
     if (p[2] - p[0] >= 17.5) or (p[2] - p[0] <= 10.0):
         return -np.inf
-    # limit maximum optical depth
-    try:
-        if max_tau(p, R) > 100:
-            return -np.inf
-    except ValueError:
-        return -np.inf
     return 0.0
-
-
-def max_tau(p, R=None):
-    """Return maximum optical depth for parameter set."""
-    log_density, log_temperature, log_column, _ = p
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        R.set_params(density={'oH2': fortho * 10.**log_density,
-                              'pH2': (1 - fortho) * 10.**log_density},
-                     column=10.**log_column,
-                     temperature=10.**log_temperature)
-        R.run_radex(validate_colliders=False, reuse_last=True, reload_molfile=False)
-        tau = np.amax(R.tau)
-    return tau
 
 def lnprob(p, Jup, flux, eflux, bounds=None):
     lp = lnprior(p, bounds, R=R)
@@ -259,6 +239,7 @@ def replot(source):
         (source, z, bounds, (Jup, flux, eflux), (popt, pcov), pmin, theta_med, (chain, lnprobability)) = pickle.load(pkl_file)
 
     init_radex(tbg=2.7315 * (1 + z))
+    R.set_params(tbg=2.7315 * (1 + z))
 
     # Get the max posterior within +/-1 sigma range
     flatchain = chain.reshape((chain.shape[0]*chain.shape[1]),4)
