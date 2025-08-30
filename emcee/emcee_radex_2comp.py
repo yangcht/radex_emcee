@@ -303,8 +303,10 @@ def replot(source):
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     minorLocator_x = MultipleLocator(1)
-    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', ms=2, label=r'$\mathrm{data}$', color='#000000', capsize=0)
-
+    minorLocator_y = MultipleLocator(0.5)
+    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', ms=2, color='#000000', capsize=0, label=r'$\mathrm{data}$')
+    ax.xaxis.set_minor_locator(minorLocator_x)
+    ax.yaxis.set_minor_locator(minorLocator_y)
     plot_Jup = np.arange(model_Jup.min(), model_Jup.max(), 0.05)
 
     pemcee_max_c = pemcee_max[:4]
@@ -329,11 +331,11 @@ def replot(source):
             f_inter = interp1d(model_Jup, model_flux, kind='cubic')
             ax.plot(plot_Jup, f_inter(plot_Jup), color='#f5ec42', alpha=0.1)
 
-    ax.set_xlabel(r'$J_\mathrm{up}$', fontsize=14)
-    ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$', fontsize=14)
-    ax.legend(loc=2, prop={'size': 12}, numpoints=1)
-    ax.xaxis.set_minor_locator(minorLocator_x)
-    fig.suptitle(r'$\mathrm{' + source + '}$', fontsize=16)
+    ax.xaxis.set_major_locator(MultipleLocator(1))
+    ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
+    ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
+    ax.legend(loc='best', prop={'size':12}, numpoints=1)
+    fig.suptitle(r'$\mathrm{'+source+'}$', fontsize=16)
     fig.savefig(f"./double/{source}_SLED_2comp.pdf", bbox_inches='tight')
     plt.close(fig)
 
