@@ -22,7 +22,7 @@ This is a very valid concern. Nevertheless, it is always the first practice to t
 - `emcee`: https://github.com/dfm/emcee
 - `Corner`: https://github.com/dfm/corner.py
 - Other common packages: `numpy`, `scipy`, `astropy`, `astroquery`
-- The plots are using the [Herschel Fonts](https://github.com/yangcht/Hershey_font_TTF).
+- The plots are using the [TTF Herschey Fonts](https://github.com/yangcht/Hershey_font_TTF).
 - **note that if you would like to directly use the compiled radex in this repo, you need to run the x86_64 version of python**
 
 ### How to produce resulting plots:
