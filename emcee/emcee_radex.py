@@ -260,7 +260,7 @@ def replot(source):
     ax = fig.add_subplot(1, 1, 1)
     minorLocator_x = MultipleLocator(1)
     minorLocator_y = MultipleLocator(0.5)
-    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', color='#000000', capsize=0, label=r'$\mathrm{data}$')
+    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', ms=2, color='#000000', capsize=0, label=r'$\mathrm{data}$')
     ax.xaxis.set_minor_locator(minorLocator_x)
     ax.yaxis.set_minor_locator(minorLocator_y)
     plot_Jup = np.arange(min(model_Jup), max(model_Jup), 0.05) # smoothing the model line
@@ -285,7 +285,7 @@ def replot(source):
     ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
     ax.xaxis.set_major_locator(MultipleLocator(1))
-    ax.legend(loc=0, prop={'size':12}, numpoints=1)
+    ax.legend(loc=2, prop={'size':12}, numpoints=1)
     fig.suptitle(r'$\mathrm{'+source+'}$', fontsize=16)
     fig.savefig("./single/{}_SLED.pdf".format(source))
 

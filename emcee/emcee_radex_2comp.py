@@ -217,9 +217,10 @@ def lnprior(p, bounds, T_d=None, R=None):
     for idx, (value, bound) in enumerate(zip(p, bounds)):
         if idx == 1 and T_d is not None:  # log10(T_cold)
             T_kin = 10.0 ** value
-            sigma = T_d
-            # Gaussian in linear T around dust temperature
-            logp += (-((T_kin - T_d) / sigma) ** 2.0 / 2.0
+            if T_d <= 0:
+                return -np.inf
+            sigma = 1.0 * T_d
+            logp += (-0.5 * ((T_kin - T_d) / sigma) ** 2.0
                      - np.log(sigma * np.sqrt(2.0 * np.pi)))
         else:
             # Uniform within bounds (constant; can be omitted since it's a constant offset)
@@ -295,7 +296,7 @@ def replot(source):
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     minorLocator_x = MultipleLocator(1)
-    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', label=r'$\mathrm{data}$', color='#000000', capsize=0)
+    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', ms=2, label=r'$\mathrm{data}$', color='#000000', capsize=0)
 
     plot_Jup = np.arange(model_Jup.min(), model_Jup.max(), 0.05)
 
@@ -323,7 +324,7 @@ def replot(source):
 
     ax.set_xlabel(r'$J_\mathrm{up}$', fontsize=14)
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$', fontsize=14)
-    ax.legend(loc=0, prop={'size': 12}, numpoints=1)
+    ax.legend(loc=2, prop={'size': 12}, numpoints=1)
     ax.xaxis.set_minor_locator(minorLocator_x)
     fig.suptitle(r'$\mathrm{' + source + '}$', fontsize=16)
     fig.savefig(f"./double/{source}_SLED_2comp.pdf", bbox_inches='tight')
