@@ -103,7 +103,6 @@ fortho = opr / (1.0 + opr)
 # Each process creates its own Radex instance for portability across start methods.
 R = None
 
-
 def init_radex(tbg=2.7315):
     """Initialise global pyradex.Radex instance."""
     global R
@@ -279,9 +278,40 @@ def get_source(source, data):
     eflux = CO_data['eflux'].data * Jykms
     return z, T_d, line_width, Jup, flux, eflux
 
+def nearest_sample_to_vector(samples, target, metric='mahalanobis', eps=1e-9):
+    """
+    Return (nearest_sample, index, distance^2) to `target` from `samples`.
+    metrics: 'mahalanobis' | 'z' (z-scored Euclidean) | 'euclidean'
+    """
+    X = np.asarray(samples, dtype=float)
+    t = np.asarray(target,  dtype=float)
+
+    if metric == 'mahalanobis':
+        C = np.cov(X, rowvar=False)
+        # regularize for numerical stability
+        C.flat[::C.shape[0] + 1] += eps
+        L = np.linalg.cholesky(C)
+        delta = (X - t).T                               # shape (D, N)
+        z = np.linalg.solve(L, delta)                   # L z = delta
+        dist2 = np.sum(z * z, axis=0)                   # length-N
+    elif metric == 'z':
+        s = np.std(X, axis=0, ddof=1)
+        s = np.where(s > 0, s, eps)
+        dist2 = np.sum(((X - t) / s) ** 2.0, axis=1)
+    else:  # 'euclidean'
+        dist2 = np.sum((X - t) ** 2.0, axis=1)
+
+    i = int(np.argmin(dist2))
+    return X[i], i, float(dist2[i])
+
 # ------------------------------- Plotting helpers -------------------------------
-def replot(source):
-    """Replot SLED and corner plots from saved pickle."""
+def replot(source, representative='median', metric='mahalanobis'):
+    """Replot SLED and corner plots from saved pickle.
+
+    representative: 'median' (default) -> nearest posterior sample to marginal medians (via `metric`)
+                    'map'              -> maximum a posteriori sample from chain (argmax log-prob)
+    metric: 'mahalanobis' | 'z' | 'euclidean'  (used only when representative='median')
+    """
     with open(f"./double/{source}_bounds_2comp.pickle", 'rb') as pkl_file:
         (source, z, bounds, T_d,
          (Jup, flux, eflux), (popt, pcov), pmin, theta_med, (chain, lnprobability)) = pickle.load(pkl_file)
@@ -289,61 +319,70 @@ def replot(source):
     init_radex(tbg=2.7315 * (1 + z))
     R.set_params(tbg=2.7315 * (1 + z))
 
-    # Build flatchain & within-1σ slice to get a MAP-ish point
+    # Build flatchain & within-1σ slice (unchanged)
     flatchain = chain.reshape((-1, 8))
     lnp = lnprobability.reshape((-1, 1))
     lower, upper = np.percentile(flatchain, [16, 84], axis=0)
     mask = np.all((flatchain > lower) & (flatchain < upper), axis=1)
     narrow_flatchain = flatchain[mask]
     narrow_lnp = lnp[mask]
-    pemcee_max = narrow_flatchain[narrow_lnp.argmax()] if len(narrow_flatchain) else theta_med
 
-    # SLED plot
+    # Existing MAP-ish point from your code (keep as-is)
+    pemcee_max = narrow_flatchain[narrow_lnp.argmax()] if len(narrow_flatchain) else theta_med
+    pemcee_max_c = pemcee_max[:4]
+    pemcee_max_w = pemcee_max[4:]
+
+    # Nearest-to-median sample (Mahalanobis by default)
+    theta_star, idx_star, d2_star = nearest_sample_to_vector(
+        flatchain, theta_med, metric=metric
+    )
+    theta_star_c = theta_star[:4]
+    theta_star_w = theta_star[4:]
+
+    # ---- Choose which representative to plot (NEW) ----
+    rep = str(representative).lower()
+    if rep in ('map', 'max', 'maximum_likelihood'):
+        theta_ref   = pemcee_max
+        theta_ref_c = pemcee_max_c
+        theta_ref_w = pemcee_max_w
+        label_main, label_warm, label_cold = r'$\mathrm{MCMC\text{-}Max}$', r'$\mathrm{Max\ warm}$', r'$\mathrm{Max\ cold}$'
+        color_main, color_warm, color_cold = '#FFA833', '#fcc82d', '#ff7b33'
+    else:  # default: 'median'
+        theta_ref   = theta_star
+        theta_ref_c = theta_star_c
+        theta_ref_w = theta_star_w
+        label_main, label_warm, label_cold = r'$\mathrm{MCMC\text{-}nearest\ median}$', r'$\mathrm{Median\ warm}$', r'$\mathrm{Median\ cold}$'
+        color_main, color_warm, color_cold = '#FFA833', '#fcc82d', '#ff7b33'
+
+    # ---------------- SLED plot (plot ONLY the chosen representative) ----------------
     model_Jup = np.arange(1, 12)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     minorLocator_x = MultipleLocator(1)
     minorLocator_y = MultipleLocator(0.5)
-    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', ms=2, color='#000000', capsize=0, label=r'$\mathrm{data}$')
+    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', ms=2, color='#000000', capsize=0, label=r'$\mathrm{data}$', zorder=15)
     ax.xaxis.set_minor_locator(minorLocator_x)
     ax.yaxis.set_minor_locator(minorLocator_y)
     plot_Jup = np.arange(model_Jup.min(), model_Jup.max(), 0.05)
 
-    # Split parameters: MAP-ish point
-    pemcee_max_c = pemcee_max[:4]
-    pemcee_max_w = pemcee_max[4:]
-    # Split parameters: posterior median
-    theta_c = theta_med[:4]
-    theta_w = theta_med[4:]
+    # Interpolators for chosen representative
+    f_inter_ref_total = interp1d(model_Jup, model_lvg(model_Jup, theta_ref, R), kind='cubic')
+    f_inter_ref_c     = interp1d(model_Jup, model_single_lvg(model_Jup, theta_ref_c, R), kind='cubic')
+    f_inter_ref_w     = interp1d(model_Jup, model_single_lvg(model_Jup, theta_ref_w, R), kind='cubic')
 
-    # Interpolators: MAP-ish
-    f_inter_pemcee_max   = interp1d(model_Jup, model_lvg(model_Jup, pemcee_max, R), kind='cubic')
-    f_inter_pemcee_max_c = interp1d(model_Jup, model_single_lvg(model_Jup, pemcee_max_c, R), kind='cubic')
-    f_inter_pemcee_max_w = interp1d(model_Jup, model_single_lvg(model_Jup, pemcee_max_w, R), kind='cubic')
+    # Plot selected representative only
+    ax.plot(plot_Jup, f_inter_ref_total(plot_Jup), label=label_main, linewidth=1.5, color=color_main, zorder=15)
+    ax.plot(plot_Jup, f_inter_ref_w(plot_Jup),     label=label_warm, linestyle='--', color=color_warm, zorder=15)
+    ax.plot(plot_Jup, f_inter_ref_c(plot_Jup),     label=label_cold, linestyle='-.', color=color_cold, zorder=15)
 
-    # Interpolators: posterior median
-    f_inter_med_total = interp1d(model_Jup, model_lvg(model_Jup, theta_med, R), kind='cubic')
-    f_inter_med_c     = interp1d(model_Jup, model_single_lvg(model_Jup, theta_c, R), kind='cubic')
-    f_inter_med_w     = interp1d(model_Jup, model_single_lvg(model_Jup, theta_w, R), kind='cubic')
-
-    # Plot MAP-ish (your original)
-    ax.plot(plot_Jup, f_inter_pemcee_max(plot_Jup),   label=r'$\mathrm{MCMC-Max}$', color='#FFA833')
-    ax.plot(plot_Jup, f_inter_pemcee_max_w(plot_Jup), label=r'$\mathrm{Max-warm}$',linestyle='--', color='#fcc82d')
-    ax.plot(plot_Jup, f_inter_pemcee_max_c(plot_Jup), label=r'$\mathrm{Max-cold}$',linestyle='-.', color='#ff7b33')
-
-    # Plot posterior medians (NEW)
-    ax.plot(plot_Jup, f_inter_med_total(plot_Jup), label=r'$\mathrm{MCMC-Med}$', color='#2B61DD', linewidth=2.2)
-    ax.plot(plot_Jup, f_inter_med_w(plot_Jup),     label=r'$\mathrm{Med-warm}$', linestyle='--', color='#6FA8DC')
-    ax.plot(plot_Jup, f_inter_med_c(plot_Jup),     label=r'$\mathrm{Med-cold}$', linestyle='-.', color='#8FA1D6')
-
-    # Overplot random posterior draws within 1σ
+    # Keep your random posterior draws overlay (underneath)
     if len(narrow_flatchain) > 0:
         inds = np.random.randint(len(narrow_flatchain), size=min(200, len(narrow_flatchain)))
         for ind in inds:
             sample = narrow_flatchain[ind]
             model_flux = model_lvg(model_Jup, sample, R)
             f_inter = interp1d(model_Jup, model_flux, kind='cubic')
-            ax.plot(plot_Jup, f_inter(plot_Jup), color='#f5ec42', alpha=0.1)
+            ax.plot(plot_Jup, f_inter(plot_Jup), color='#f5ec42', alpha=0.1, zorder=1)
 
     ax.xaxis.set_major_locator(MultipleLocator(1))
     ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
@@ -353,7 +392,7 @@ def replot(source):
     fig.savefig(f"./double/{source}_SLED_2comp.pdf", bbox_inches='tight')
     plt.close(fig)
 
-    # Full 8D corner
+    # ---------------- Full 8D corner (truths = chosen representative) ----------------
     chain_plot = np.hstack((flatchain[:, [0, 1, 2, 3]], flatchain[:, [4, 5, 6, 7]]))
     labels8 = [
         r'$\mathrm{log}_{10}(n_\mathrm{H_2,\,c}\,[\mathrm{cm}^{-3}])$',
@@ -368,23 +407,24 @@ def replot(source):
     plot_range8 = [(1.9, 7.1), (1, 3.02), (14.5, 19.5), (-12.5, -8.5),
                    (1.9, 7.1), (1, 3.0), (14.5, 19.5), (-12.5, -8.5)]
 
+    truths_for_corner = np.hstack((theta_ref_c, theta_ref_w))
     fig = corner.corner(
         chain_plot,
         labels=labels8,
         show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15},
         plot_datapoints=False, range=plot_range8, max_n_ticks=6, smooth=0.8,
-        quantiles=[0.15865, 0.50, 0.84135], truths=np.hstack((pemcee_max_c, pemcee_max_w)),
-        truth_color="#FFA833", color="#2B61DD", bins=24
+        quantiles=[0.15865, 0.50, 0.84135], truths=truths_for_corner,
+        truth_color=color_main, color="#2B61DD", bins=24
     )
     fig.suptitle(r'$\mathrm{' + source + '}$', fontsize=16)
     fig.savefig(f"./double/{source}_corner_2comp_all.pdf", bbox_inches='tight')
     plt.close(fig)
 
-    # Publication versions (remove size)
+    # ---------------- Publication 3D corners (truths = chosen representative) ----------------
     chain_cold = flatchain[:, [0, 1, 2]]
     chain_warm = flatchain[:, [4, 5, 6]]
-    new_pemcee_max_c = pemcee_max_c[:3]
-    new_pemcee_max_w = pemcee_max_w[:3]
+    new_pemcee_max_c = theta_ref_c[:3]   # keep variable names, but now consistent with chosen rep
+    new_pemcee_max_w = theta_ref_w[:3]
     plot_range3 = [(1.9, 7.1), (1, 3.02), (14.5, 19.5)]
 
     fig = corner.corner(
@@ -395,7 +435,7 @@ def replot(source):
         show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15},
         plot_datapoints=False, range=plot_range3, max_n_ticks=6, smooth=0.8,
         quantiles=[0.15865, 0.50, 0.84135], truths=new_pemcee_max_c,
-        truth_color="#fcc82d", color="#198189", bins=24
+        truth_color=color_cold, color="#198189", bins=24
     )
     fig.savefig(f"./double/{source}_corner_2comp_1.pdf", bbox_inches='tight')
     plt.close(fig)
@@ -408,12 +448,12 @@ def replot(source):
         show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15},
         plot_datapoints=False, range=plot_range3, max_n_ticks=6, smooth=0.8,
         quantiles=[0.15865, 0.50, 0.84135], truths=new_pemcee_max_w,
-        truth_color="#ff7b33", color="#b1d623", bins=24
+        truth_color=color_warm, color="#b1d623", bins=24
     )
     fig.savefig(f"./double/{source}_corner_2comp_2.pdf", bbox_inches='tight')
     plt.close(fig)
 
-    # Print median +/−1σ for (log n, log T, log N, log P=log n + log T)
+    # ---------------- Print median ± 1σ (unchanged) ----------------
     chain_cold_P = np.hstack((chain_cold, chain_cold[:, [0]] + chain_cold[:, [1]]))
     chain_warm_P = np.hstack((chain_warm, chain_warm[:, [0]] + chain_warm[:, [1]]))  # log P = log n + log T
 

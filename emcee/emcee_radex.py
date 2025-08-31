@@ -239,97 +239,170 @@ def get_source(source, data):
     eflux = CO_data['eflux'].data * Jykms
     return z, line_width, Jup, flux, eflux
 
-def replot(source):
+def nearest_sample_to_vector(samples, target, metric='mahalanobis', eps=1e-9):
+    """
+    Return (nearest_sample, index, distance^2) to `target` from `samples`.
+    metrics: 'mahalanobis' | 'z' (z-scored Euclidean) | 'euclidean'
+    """
+    X = np.asarray(samples, dtype=float)
+    t = np.asarray(target,  dtype=float)
+
+    if metric == 'mahalanobis':
+        C = np.cov(X, rowvar=False)
+        # regularize for numerical stability
+        C.flat[::C.shape[0] + 1] += eps
+        L = np.linalg.cholesky(C)
+        delta = (X - t).T                               # shape (D, N)
+        z = np.linalg.solve(L, delta)                   # L z = delta
+        dist2 = np.sum(z * z, axis=0)                   # length-N
+    elif metric == 'z':
+        s = np.std(X, axis=0, ddof=1)
+        s = np.where(s > 0, s, eps)
+        dist2 = np.sum(((X - t) / s) ** 2.0, axis=1)
+    else:  # 'euclidean'
+        dist2 = np.sum((X - t) ** 2.0, axis=1)
+
+    i = int(np.argmin(dist2))
+    return X[i], i, float(dist2[i])
+
+def nearest_sample_to_vector(samples, target, metric='mahalanobis', eps=1e-9):
+    """
+    Return (nearest_sample, index, distance^2) to `target` from `samples`.
+    metrics: 'mahalanobis' | 'z' (z-scored Euclidean) | 'euclidean'
+    """
+    X = np.asarray(samples, dtype=float)
+    t = np.asarray(target,  dtype=float)
+
+    if metric == 'mahalanobis':
+        C = np.cov(X, rowvar=False)
+        # regularize for numerical stability
+        C.flat[::C.shape[0] + 1] += eps
+        L = np.linalg.cholesky(C)
+        delta = (X - t).T               # (D, N)
+        z = np.linalg.solve(L, delta)   # L z = delta
+        dist2 = np.sum(z * z, axis=0)
+    elif metric == 'z':
+        s = np.std(X, axis=0, ddof=1)
+        s = np.where(s > 0, s, eps)
+        dist2 = np.sum(((X - t) / s) ** 2.0, axis=1)
+    else:  # 'euclidean'
+        dist2 = np.sum((X - t) ** 2.0, axis=1)
+
+    i = int(np.argmin(dist2))
+    return X[i], i, float(dist2[i])
+
+def replot(source, representative='median', metric='mahalanobis'):
     plt.ion()
     # Retrieve the data
     with open("./single/{}_bounds.pickle".format(source), 'rb') as pkl_file:
-        (source, z, bounds, (Jup, flux, eflux), (popt, pcov), pmin, theta_med, (chain, lnprobability)) = pickle.load(pkl_file)
+        (source, z, bounds, (Jup, flux, eflux),
+         (popt, pcov), pmin, theta_med, (chain, lnprobability)) = pickle.load(pkl_file)
 
     init_radex(tbg=2.7315 * (1 + z))
     R.set_params(tbg=2.7315 * (1 + z))
 
-    # Get the max posterior within +/-1 sigma range
-    flatchain = chain.reshape((chain.shape[0]*chain.shape[1]),4)
-    lnp = lnprobability.reshape((lnprobability.shape[0]*lnprobability.shape[1]),1)
-    lower, upper     = np.percentile(flatchain, [16, 84],axis=0)
-    narrow_flatchain = flatchain[(flatchain[:,0] > lower[0]*1) & (flatchain[:,0] < upper[0]*1) & \
-                                 (flatchain[:,1] > lower[1]*1) & (flatchain[:,1] < upper[1]*1) & \
-                                 (flatchain[:,2] > lower[2]*1) & (flatchain[:,2] < upper[2]*1) & \
-                                 (flatchain[:,3] > lower[3]*1) & (flatchain[:,3] < upper[3]*1) ]
-    narrow_lnp       =       lnp[(flatchain[:,0] > lower[0]*1) & (flatchain[:,0] < upper[0]*1) & \
-                                 (flatchain[:,1] > lower[1]*1) & (flatchain[:,1] < upper[1]*1) & \
-                                 (flatchain[:,2] > lower[2]*1) & (flatchain[:,2] < upper[2]*1) & \
-                                 (flatchain[:,3] > lower[3]*1) & (flatchain[:,3] < upper[3]*1) ]
-    pemcee_max       = narrow_flatchain[narrow_lnp.argmax()]
+    # Flatten chain + narrow 16–84% slice (same logic as before)
+    flatchain = chain.reshape((chain.shape[0]*chain.shape[1]), 4)
+    lnp = lnprobability.reshape((lnprobability.shape[0]*lnprobability.shape[1]),)
 
+    lower, upper = np.percentile(flatchain, [16, 84], axis=0)
+    mask = (
+        (flatchain[:,0] > lower[0]) & (flatchain[:,0] < upper[0]) &
+        (flatchain[:,1] > lower[1]) & (flatchain[:,1] < upper[1]) &
+        (flatchain[:,2] > lower[2]) & (flatchain[:,2] < upper[2]) &
+        (flatchain[:,3] > lower[3]) & (flatchain[:,3] < upper[3])
+    )
+    narrow_flatchain = flatchain[mask]
+    narrow_lnp       = lnp[mask]
+
+    # "Maximum-likelihood" from chain (your original approach)
+    pemcee_max = narrow_flatchain[narrow_lnp.argmax()] if len(narrow_flatchain) else theta_med
+
+    # Nearest-to-median posterior sample
+    theta_star, idx_star, d2_star = nearest_sample_to_vector(flatchain, theta_med, metric=metric)
+
+    # ---- Choose which single representative to plot (NEW) ----
+    rep = str(representative).lower()
+    if rep in ('map', 'max', 'maximum_likelihood'):
+        theta_ref = pemcee_max
+        label_main = r'$\mathrm{MCMC\text{-}Max}$'
+        color_main = '#FFA833'
+    else:  # default: 'median'
+        theta_ref = theta_star
+        label_main = r'$\mathrm{MCMC\text{-}nearest\ median}$'
+        color_main = '#FFA833'
+
+    # ---------------- SLED plot (ONLY chosen representative) ----------------
     model_Jup = range(1, 12)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     minorLocator_x = MultipleLocator(1)
     minorLocator_y = MultipleLocator(0.5)
-    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', ms=2, color='#000000', capsize=0, label=r'$\mathrm{data}$')
+    ax.errorbar(Jup, flux.value, eflux.value, fmt='o', ms=2, color='#000000', capsize=0, label=r'$\mathrm{data}$', zorder=15)
     ax.xaxis.set_minor_locator(minorLocator_x)
     ax.yaxis.set_minor_locator(minorLocator_y)
-    plot_Jup = np.arange(min(model_Jup), max(model_Jup), 0.05) # smoothing the model line
+    plot_Jup = np.arange(min(model_Jup), max(model_Jup), 0.05)  # smoothing the model line
 
-    # compute the models for chi^2 (pmin), median (pemcee) and maximum-likelihood (pemcee_max)
-    f_inter_pmin = interp1d(model_Jup, model_lvg(model_Jup, pmin, R), kind='cubic')
-    f_inter_med  = interp1d(model_Jup, model_lvg(model_Jup, theta_med, R), kind='cubic')
-    f_inter_pemcee_max = interp1d(model_Jup, model_lvg(model_Jup, pemcee_max, R), kind='cubic')
+    # Overlay random posterior draws within [16, 84]% as before
+    if len(narrow_flatchain) > 0:
+        inds = np.random.randint(len(narrow_flatchain), size=min(200, len(narrow_flatchain)))
+        for ind in inds:
+            sample = narrow_flatchain[ind]
+            f_inter_sample = interp1d(model_Jup, model_lvg(model_Jup, sample, R), kind='cubic')
+            ax.plot(plot_Jup, f_inter_sample(plot_Jup), color='#f5ec42', alpha=0.1, zorder=1)
 
-    # plot the models onto the CO SLED
-    ax.plot(plot_Jup, f_inter_pmin(plot_Jup),       label=r'$\mathrm{{\chi}^2}$', linestyle='--', color='#2B61DD')
-    ax.plot(plot_Jup, f_inter_pemcee(plot_Jup),     label=r'$\mathrm{MCMC-Med}$', linestyle='--', color='#2B61DD')
-    ax.plot(plot_Jup, f_inter_pemcee_max(plot_Jup), label=r'$\mathrm{MCMC-Max}$', color='#FFA833')
+    # Interpolator and plot for chosen representative
+    f_inter_ref = interp1d(model_Jup, model_lvg(model_Jup, theta_ref, R), kind='cubic')
+    ax.plot(plot_Jup, f_inter_ref(plot_Jup), label=label_main, color=color_main, linewidth=1.5, zorder=15)
 
-    # plot the 200 "good models" within the [16, 84] quartile
-    inds = np.random.randint(len(narrow_flatchain), size=200)
-    for ind in inds:
-        sample = narrow_flatchain[ind]
-        f_inter_pemcee_sample = interp1d(model_Jup, model_lvg(model_Jup, sample, R), kind='cubic')
-        ax.plot(plot_Jup, f_inter_pemcee_sample(plot_Jup), color='#f5ec42', alpha=0.1)
-
-    ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
-    ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
+    ax.set_xlabel(r'$J_\mathrm{up}$', fontsize=14)
+    ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$', fontsize=14)
     ax.xaxis.set_major_locator(MultipleLocator(1))
-    ax.legend(loc='best', prop={'size':12}, numpoints=1)
+    ax.legend(loc='best', prop={'size': 8}, numpoints=1)
     fig.suptitle(r'$\mathrm{'+source+'}$', fontsize=16)
     fig.savefig("./single/{}_SLED.pdf".format(source))
+    plt.close(fig)
 
-    # plots for the full corner
+    # ---------------- Full 4D corner (truths = chosen representative) ----------------
     plot_range=[(1.9,7.1),(1,3.02),(14.5, 19.5),(-12.5,-8.5)]
-    fig = corner.corner(flatchain,
-                        labels=[r'$\mathrm{log}_{10}(n_\mathrm{H_2}\;[\mathrm{cm}^{-3}])$',
-                                r'$\mathrm{log}_{10}(T_\mathrm{kin}\;[\mathrm{K}])$',
-                                r'$\mathrm{log}_{10}({N_\mathrm{CO}}/{\mathrm{d}v}\;[\frac{\mathrm{cm}^{-2}}{\mathrm{km\,s}^{-1}}])$',
-                                r'$\mathrm{log}_{10}(\mathrm{[size\,sr^{-1}]})$'],
-                        show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15},
-                        plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
-                        quantiles=[0.15865, 0.50, 0.84135], truths=pemcee_max, truth_color="#FFA833", color="#2B61DD", bins=24)
+    fig = corner.corner(
+        flatchain,
+        labels=[r'$\mathrm{log}_{10}(n_\mathrm{H_2}\;[\mathrm{cm}^{-3}])$',
+                r'$\mathrm{log}_{10}(T_\mathrm{kin}\;[\mathrm{K}])$',
+                r'$\mathrm{log}_{10}({N_\mathrm{CO}}/{\mathrm{d}v}\;[\frac{\mathrm{cm}^{-2}}{\mathrm{km\,s}^{-1}}])$',
+                r'$\mathrm{log}_{10}(\mathrm{[size\,sr^{-1}]})$'],
+        show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15},
+        plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
+        quantiles=[0.15865, 0.50, 0.84135], truths=theta_ref, truth_color=color_main, color="#2B61DD", bins=24
+    )
     fig.suptitle(r'$\mathrm{'+source+'}$', fontsize=16)
     fig.savefig("./single/{}_corner_full.pdf".format(source))
+    plt.close(fig)
 
-    # plots for publication, remove size from the plot
+    # ---------------- 3D publication corner (without size), truths = chosen rep -----
     plot_range=[(1.9,7.1),(1,3.02),(14.5, 19.5)]
-    fig = corner.corner(flatchain[:,[0,1,2]],
-          labels=[r'$\mathrm{log}_{10}(n_\mathrm{H_2}\;[\mathrm{cm}^{-3}])$',
-                  r'$\mathrm{log}_{10}(T_\mathrm{kin}\;[\mathrm{K}])$',
-                  r'$\mathrm{log}_{10}({N_\mathrm{CO}}/{\mathrm{d}v}\;[\frac{\mathrm{cm}^{-2}}{\mathrm{km\,s}^{-1}}])$'],
-          show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15}, 
-          plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
-          quantiles=[0.15865, 0.5, 0.84135], truths=pemcee_max[:3], truth_color="#FFA833", color="#2B61DD", bins=24)
+    fig = corner.corner(
+        flatchain[:,[0,1,2]],
+        labels=[r'$\mathrm{log}_{10}(n_\mathrm{H_2}\;[\mathrm{cm}^{-3}])$',
+                r'$\mathrm{log}_{10}(T_\mathrm{kin}\;[\mathrm{K}])$',
+                r'$\mathrm{log}_{10}({N_\mathrm{CO}}/{\mathrm{d}v}\;[\frac{\mathrm{cm}^{-2}}{\mathrm{km\,s}^{-1}}])$'],
+        show_titles=True, title_kwargs={"fontsize": 11}, label_kwargs={"fontsize": 15},
+        plot_datapoints=False, range=plot_range, max_n_ticks=6, smooth=0.6,
+        quantiles=[0.15865, 0.5, 0.84135], truths=theta_ref[:3], truth_color=color_main, color="#2B61DD", bins=24
+    )
     fig.suptitle(r'$\mathrm{'+source+'}$', fontsize=16)
     fig.savefig("./single/{}_corner.pdf".format(source))
+    plt.close(fig)
 
-    # Print the MCMC results
+    # Print section below remains unchanged
     flatchain_pressure = np.hstack((flatchain[:,[0,1,2]], flatchain[:,[0]]+flatchain[:,[1]]))
-    n_c, T_c, N_c, P_c= map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), 
-                        list(zip(*np.percentile(flatchain_pressure, [16, 50, 84], axis=0))))
+    n_c, T_c, N_c, P_c = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
+                             list(zip(*np.percentile(flatchain_pressure, [16, 50, 84], axis=0))))
 
     print("median")
-    print(' ', n_c[0],' ', T_c[0],' ', N_c[0],' ', P_c[0])
-    print('+', n_c[1],'+', T_c[1],'+', N_c[1],'+', P_c[1])
-    print('-', n_c[2],'-', T_c[2],'-', N_c[2],'-', P_c[2])
+    print(' ', n_c[0], ' ', T_c[0], ' ', N_c[0], ' ', P_c[0])
+    print('+', n_c[1], '+', T_c[1], '+', N_c[1], '+', P_c[1])
+    print('-', n_c[2], '-', T_c[2], '-', N_c[2], '-', P_c[2])
     print("4max", '\n', pemcee_max)
 
 def main():
