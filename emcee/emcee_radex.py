@@ -278,9 +278,9 @@ def replot(source):
     f_inter_pemcee_max = interp1d(model_Jup, model_lvg(model_Jup, pemcee_max, R), kind='cubic')
 
     # plot the models onto the CO SLED
-    ax.plot(plot_Jup, f_inter_pmin(plot_Jup), label=r'$\mathrm{{\chi}^2}$', linestyle='--', color='#2B61DD')
-    #ax.plot(plot_Jup, f_inter_pemcee(plot_Jup), label=r'$\mathrm{median_{MCMC}}$', linestyle='--', color='#2B61DD')
-    ax.plot(plot_Jup, f_inter_pemcee_max(plot_Jup), label=r'$\mathrm{MCMC}$', color='#FFA833')
+    ax.plot(plot_Jup, f_inter_pmin(plot_Jup),       label=r'$\mathrm{{\chi}^2}$', linestyle='--', color='#2B61DD')
+    ax.plot(plot_Jup, f_inter_pemcee(plot_Jup),     label=r'$\mathrm{MCMC-Med}$', linestyle='--', color='#2B61DD')
+    ax.plot(plot_Jup, f_inter_pemcee_max(plot_Jup), label=r'$\mathrm{MCMC-Max}$', color='#FFA833')
 
     # plot the 200 "good models" within the [16, 84] quartile
     inds = np.random.randint(len(narrow_flatchain), size=200)

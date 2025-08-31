@@ -309,18 +309,32 @@ def replot(source):
     ax.yaxis.set_minor_locator(minorLocator_y)
     plot_Jup = np.arange(model_Jup.min(), model_Jup.max(), 0.05)
 
+    # Split parameters: MAP-ish point
     pemcee_max_c = pemcee_max[:4]
     pemcee_max_w = pemcee_max[4:]
+    # Split parameters: posterior median
     theta_c = theta_med[:4]
     theta_w = theta_med[4:]
 
-    f_inter_pemcee_max = interp1d(model_Jup, model_lvg(model_Jup, pemcee_max, R), kind='cubic')
+    # Interpolators: MAP-ish
+    f_inter_pemcee_max   = interp1d(model_Jup, model_lvg(model_Jup, pemcee_max, R), kind='cubic')
     f_inter_pemcee_max_c = interp1d(model_Jup, model_single_lvg(model_Jup, pemcee_max_c, R), kind='cubic')
     f_inter_pemcee_max_w = interp1d(model_Jup, model_single_lvg(model_Jup, pemcee_max_w, R), kind='cubic')
 
-    ax.plot(plot_Jup, f_inter_pemcee_max(plot_Jup), label=r'$\mathrm{MCMC}$', color='#FFA833')
-    ax.plot(plot_Jup, f_inter_pemcee_max_w(plot_Jup), linestyle='--', color='#fcc82d')
-    ax.plot(plot_Jup, f_inter_pemcee_max_c(plot_Jup), linestyle='-.', color='#ff7b33')
+    # Interpolators: posterior median
+    f_inter_med_total = interp1d(model_Jup, model_lvg(model_Jup, theta_med, R), kind='cubic')
+    f_inter_med_c     = interp1d(model_Jup, model_single_lvg(model_Jup, theta_c, R), kind='cubic')
+    f_inter_med_w     = interp1d(model_Jup, model_single_lvg(model_Jup, theta_w, R), kind='cubic')
+
+    # Plot MAP-ish (your original)
+    ax.plot(plot_Jup, f_inter_pemcee_max(plot_Jup),   label=r'$\mathrm{MCMC-Max}$', color='#FFA833')
+    ax.plot(plot_Jup, f_inter_pemcee_max_w(plot_Jup), label=r'$\mathrm{Max-warm}$',linestyle='--', color='#fcc82d')
+    ax.plot(plot_Jup, f_inter_pemcee_max_c(plot_Jup), label=r'$\mathrm{Max-cold}$',linestyle='-.', color='#ff7b33')
+
+    # Plot posterior medians (NEW)
+    ax.plot(plot_Jup, f_inter_med_total(plot_Jup), label=r'$\mathrm{MCMC-Med}$', color='#2B61DD', linewidth=2.2)
+    ax.plot(plot_Jup, f_inter_med_w(plot_Jup),     label=r'$\mathrm{Med-warm}$', linestyle='--', color='#6FA8DC')
+    ax.plot(plot_Jup, f_inter_med_c(plot_Jup),     label=r'$\mathrm{Med-cold}$', linestyle='-.', color='#8FA1D6')
 
     # Overplot random posterior draws within 1σ
     if len(narrow_flatchain) > 0:
@@ -334,7 +348,7 @@ def replot(source):
     ax.xaxis.set_major_locator(MultipleLocator(1))
     ax.set_xlabel(r'$J_\mathrm{up}$',fontsize=14)
     ax.set_ylabel(r'$I_\mathrm{CO}\;[\mathrm{Jy\;km\;s^{-1}}]$',fontsize=14)
-    ax.legend(loc='best', prop={'size':12}, numpoints=1)
+    ax.legend(loc='best', prop={'size':8}, numpoints=1)
     fig.suptitle(r'$\mathrm{'+source+'}$', fontsize=16)
     fig.savefig(f"./double/{source}_SLED_2comp.pdf", bbox_inches='tight')
     plt.close(fig)
