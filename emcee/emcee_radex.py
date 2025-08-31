@@ -252,32 +252,6 @@ def nearest_sample_to_vector(samples, target, metric='mahalanobis', eps=1e-9):
         # regularize for numerical stability
         C.flat[::C.shape[0] + 1] += eps
         L = np.linalg.cholesky(C)
-        delta = (X - t).T                               # shape (D, N)
-        z = np.linalg.solve(L, delta)                   # L z = delta
-        dist2 = np.sum(z * z, axis=0)                   # length-N
-    elif metric == 'z':
-        s = np.std(X, axis=0, ddof=1)
-        s = np.where(s > 0, s, eps)
-        dist2 = np.sum(((X - t) / s) ** 2.0, axis=1)
-    else:  # 'euclidean'
-        dist2 = np.sum((X - t) ** 2.0, axis=1)
-
-    i = int(np.argmin(dist2))
-    return X[i], i, float(dist2[i])
-
-def nearest_sample_to_vector(samples, target, metric='mahalanobis', eps=1e-9):
-    """
-    Return (nearest_sample, index, distance^2) to `target` from `samples`.
-    metrics: 'mahalanobis' | 'z' (z-scored Euclidean) | 'euclidean'
-    """
-    X = np.asarray(samples, dtype=float)
-    t = np.asarray(target,  dtype=float)
-
-    if metric == 'mahalanobis':
-        C = np.cov(X, rowvar=False)
-        # regularize for numerical stability
-        C.flat[::C.shape[0] + 1] += eps
-        L = np.linalg.cholesky(C)
         delta = (X - t).T               # (D, N)
         z = np.linalg.solve(L, delta)   # L z = delta
         dist2 = np.sum(z * z, axis=0)
@@ -329,7 +303,7 @@ def replot(source, representative='median', metric='mahalanobis'):
         color_main = '#FFA833'
     else:  # default: 'median'
         theta_ref = theta_star
-        label_main = r'$\mathrm{MCMC\text{-}nearest\ median}$'
+        label_main = r'$\mathrm{MCMC\text{-}nearest\ Median}$'
         color_main = '#FFA833'
 
     # ---------------- SLED plot (ONLY chosen representative) ----------------
@@ -394,7 +368,7 @@ def replot(source, representative='median', metric='mahalanobis'):
     fig.savefig("./single/{}_corner.pdf".format(source))
     plt.close(fig)
 
-    # Print section below remains unchanged
+    # Print the results
     flatchain_pressure = np.hstack((flatchain[:,[0,1,2]], flatchain[:,[0]]+flatchain[:,[1]]))
     n_c, T_c, N_c, P_c = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
                              list(zip(*np.percentile(flatchain_pressure, [16, 50, 84], axis=0))))

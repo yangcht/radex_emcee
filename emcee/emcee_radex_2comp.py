@@ -319,7 +319,7 @@ def replot(source, representative='median', metric='mahalanobis'):
     init_radex(tbg=2.7315 * (1 + z))
     R.set_params(tbg=2.7315 * (1 + z))
 
-    # Build flatchain & within-1σ slice (unchanged)
+    # Build flatchain & within-1σ slice
     flatchain = chain.reshape((-1, 8))
     lnp = lnprobability.reshape((-1, 1))
     lower, upper = np.percentile(flatchain, [16, 84], axis=0)
@@ -345,13 +345,13 @@ def replot(source, representative='median', metric='mahalanobis'):
         theta_ref   = pemcee_max
         theta_ref_c = pemcee_max_c
         theta_ref_w = pemcee_max_w
-        label_main, label_warm, label_cold = r'$\mathrm{MCMC\text{-}Max}$', r'$\mathrm{Max\ warm}$', r'$\mathrm{Max\ cold}$'
+        label_main, label_warm, label_cold = r'$\mathrm{MCMC\text{-}Max}$', r'$\mathrm{Max-warm}$', r'$\mathrm{Max-cold}$'
         color_main, color_warm, color_cold = '#FFA833', '#fcc82d', '#ff7b33'
     else:  # default: 'median'
         theta_ref   = theta_star
         theta_ref_c = theta_star_c
         theta_ref_w = theta_star_w
-        label_main, label_warm, label_cold = r'$\mathrm{MCMC\text{-}nearest\ median}$', r'$\mathrm{Median\ warm}$', r'$\mathrm{Median\ cold}$'
+        label_main, label_warm, label_cold = r'$\mathrm{MCMC\text{-}nearest\ Median}$', r'$\mathrm{Med-warm}$', r'$\mathrm{Med-cold}$'
         color_main, color_warm, color_cold = '#FFA833', '#fcc82d', '#ff7b33'
 
     # ---------------- SLED plot (plot ONLY the chosen representative) ----------------
@@ -453,7 +453,7 @@ def replot(source, representative='median', metric='mahalanobis'):
     fig.savefig(f"./double/{source}_corner_2comp_2.pdf", bbox_inches='tight')
     plt.close(fig)
 
-    # ---------------- Print median ± 1σ (unchanged) ----------------
+    # ---------------- Print median ± 1σ ----------------
     chain_cold_P = np.hstack((chain_cold, chain_cold[:, [0]] + chain_cold[:, [1]]))
     chain_warm_P = np.hstack((chain_warm, chain_warm[:, [0]] + chain_warm[:, [1]]))  # log P = log n + log T
 
